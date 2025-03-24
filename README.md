@@ -1,7 +1,8 @@
 # CodHammer - Дизайн и Интерфейс Платформы
 
 ## Общая структура интерфейса (Figma)
-[Ссылка на макет Figma]([[https://www.figma.com/design/5iAyeMiAuPKjVU5A2y12hu/Untitled-(Copy)?node-id=0-1&t=aKpkksrXioYly0c0-1](https://www.figma.com/design/5iAyeMiAuPKjVU5A2y12hu/CodHammer?t=aKpkksrXioYly0c0-1)](https://www.figma.com/design/5iAyeMiAuPKjVU5A2y12hu/CodHammer?t=aKpkksrXioYly0c0-1))
+[Ссылка на макет Figma]
+https://www.figma.com/design/5iAyeMiAuPKjVU5A2y12hu/CodHammer?t=aKpkksrXioYly0c0-1
 
 ### Основные экраны платформы:
 

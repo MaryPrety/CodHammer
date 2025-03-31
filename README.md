@@ -1,4 +1,5 @@
 # CodHammer - Бизнес-модель
+![Бизнес_модель_owlet](https://github.com/user-attachments/assets/07b42310-09ff-42f9-8297-e696fdfa862d)
 
 ## Основные источники дохода
 

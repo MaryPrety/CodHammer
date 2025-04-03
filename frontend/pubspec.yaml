@@ -73,6 +73,12 @@ flutter:
       fonts:
         - asset: assets/fonts/Tomorrow-Regular.ttf
 
+    - family: Roboto
+      fonts:
+      - asset: assets/fonts/Roboto-Regular.ttf
+      - asset: assets/fonts/Roboto-Bold.ttf
+        weight: 700
+
   assets:
     # Аватары
     - assets/avatar_1.png

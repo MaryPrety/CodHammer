@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String _baseUrl = 'http://backend:8080'; 
+  static const String _baseUrl = 'http://localhost:8080'; 
 
   // Общий метод для запросов
   static Future<dynamic> _makeRequest(
@@ -61,12 +61,12 @@ class ApiService {
   }
 
   // Авторизация
-  static Future<dynamic> login(String email, String password) async {
+  static Future<dynamic> login(String emailOrPhone, String password) async {
     final response = await _makeRequest(
       'POST',
       '/login',
       {
-        'email': email,
+        'emailOrPhone': emailOrPhone,
         'password': password,
       },
     );
@@ -82,6 +82,10 @@ class ApiService {
   // Получение списка пользователей
   static Future<List<dynamic>> getUsers() async {
     return await _makeRequest('GET', '/users', null);
+  }
+
+  static Future<Map<String, dynamic>> getCurrentUser() async {
+    return await _makeRequest('GET', '/current-user', null);
   }
 
   // Сохранение токена

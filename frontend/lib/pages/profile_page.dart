@@ -1,3 +1,4 @@
+import 'package:cod_hammer/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 
@@ -9,6 +10,10 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  Map<String, dynamic>? userData;
+  bool isLoading = true;
+  String errorMessage = '';
+
   final Map<String, double> stats = {
     "Polls": 60,
     "Hackathons": 90,
@@ -17,10 +22,31 @@ class _ProfilePageState extends State<ProfilePage> {
     "Bet on sports": 50,
   };
 
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final data = await ApiService.getCurrentUser();
+      setState(() {
+        userData = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Ошибка загрузки данных: $e';
+        isLoading = false;
+      });
+    }
+  }
+
   Future<void> _showLogoutDialog(BuildContext context) async {
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, // пользователь должен нажать кнопку
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Подтверждение выхода'),
@@ -34,7 +60,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             TextButton(
               child: const Text('Выйти', style: TextStyle(color: Colors.red)),
-              onPressed: () {
+              onPressed: () async {
+                await ApiService.logout();
                 Navigator.of(context).pop(); 
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Вы успешно вышли из профиля')),
@@ -49,6 +76,27 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF062B42),
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
+      );
+    }
+
+    if (errorMessage.isNotEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF062B42),
+        body: Center(
+          child: Text(
+            errorMessage,
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF062B42),
       body: SingleChildScrollView(
@@ -80,14 +128,14 @@ class _ProfilePageState extends State<ProfilePage> {
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
-                'Vasilchenko Maria Mikhailovna',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                userData?['username'] ?? 'Неизвестный пользователь',
+                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Roboto'),
               ),
               Text(
-                'university - MIREA',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
+                'Роль: ${userData?['role'] ?? 'student'}',
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
               ),
             ],
           ),
@@ -103,14 +151,25 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildUserInfo() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
-        _InfoText('Age: 21 years old'),
-        _InfoText('Interest: robotics, IoT devices'),
-        _InfoText('Ready to participate in hackathons'),
-        _InfoText('Email: mari.vas.04@mail.ru'),
+      children: [
+        _InfoText('Возраст: ${userData?['age'] ?? 'не указан'}'),
+        _InfoText('Email: ${userData?['email'] ?? 'не указан'}'),
+        _InfoText('Телефон: ${userData?['phone'] ?? 'не указан'}'),
+        _InfoText('Дата регистрации: ${_formatDate(userData?['created_at'])}'),
       ],
     );
   }
+
+  String _formatDate(String? dateString) {
+    if (dateString == null) return 'неизвестно';
+    try {
+      final date = DateTime.parse(dateString);
+      return '${date.day}.${date.month}.${date.year}';
+    } catch (e) {
+      return 'неизвестно';
+    }
+  }
+
 
   Widget _buildRadarChart() {
     return SizedBox(
@@ -206,7 +265,7 @@ class _InfoText extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Text(
         text,
-        style: const TextStyle(color: Colors.white70, fontSize: 14),
+        style: const TextStyle(color: Colors.white70, fontSize: 14, fontFamily: 'Roboto'),
       ),
     );
   }

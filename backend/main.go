@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -41,7 +43,9 @@ type AuthResponse struct {
 
 // Claims структура для JWT
 type Claims struct {
+	UserID   string `json:"id"`
 	Username string `json:"username"`
+	Role     string `json:"role"`
 	jwt.StandardClaims
 }
 
@@ -55,9 +59,23 @@ func main() {
 
 	// Настройка маршрутов
 	router := mux.NewRouter()
-	router.HandleFunc("/register", registerHandler).Methods("POST")
-	router.HandleFunc("/login", loginHandler).Methods("POST")
-	router.HandleFunc("/users", getUsersHandler).Methods("GET")
+	router.Use(enableCORS)
+
+	router.HandleFunc("/register", registerHandler).Methods("POST", "OPTIONS")
+	router.HandleFunc("/login", loginHandler).Methods("POST", "OPTIONS")
+	// Проверка работы базы данных
+	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		if err := db.Ping(); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprint(w, "DB connection error")
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, "OK")
+	}).Methods("GET")
+
+	router.Handle("/users", authMiddleware(http.HandlerFunc(getUsersHandler))).Methods("GET", "OPTIONS")
+	router.Handle("/current-user", authMiddleware(http.HandlerFunc(getCurrentUserHandler))).Methods("GET", "OPTIONS")
 
 	// Запуск сервера
 	port := os.Getenv("PORT")
@@ -98,18 +116,36 @@ func generateRandomKey(length int) ([]byte, error) {
 
 // Инициализация PostgreSQL
 func initDB() {
-	var err error
-	// Подключение к PostgreSQL
-	connStr := "user=postgres dbname=users password=1973 host=localhost sslmode=disable"
-	db, err = sql.Open("postgres", connStr)
-	if err != nil {
-		log.Fatal(err)
+
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found")
 	}
 
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	dbname := os.Getenv("DB_NAME")
+
+	// Подключение к PostgreSQL
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname)
+
 	// Проверка подключения
+	var err error
+	db, err = sql.Open("postgres", connStr)
+	if err != nil {
+		log.Fatal("Error connecting to database:", err)
+	}
+
+	// Добавить настройки пула соединений
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
 	err = db.Ping()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Database ping failed:", err)
 	}
 
 	// Создание таблицы пользователей, если она не существует
@@ -221,14 +257,16 @@ func authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		ctx := context.WithValue(r.Context(), "claims", claims)
+		next.ServeHTTP(w, r.WithContext(ctx))
+
 	})
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	var creds struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
+		EmailOrPhone string `json:"emailOrPhone"`
+		Password     string `json:"password"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&creds)
@@ -240,8 +278,8 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	// Поиск пользователя в базе данных
 	var user User
 	err = db.QueryRow(
-		"SELECT id, username, email, password, role, age, phone, created_at FROM users WHERE username = $1 OR email = $1",
-		creds.Username,
+		"SELECT id, username, email, password, role, age, phone, created_at FROM users WHERE phone = $1 OR email = $1",
+		creds.EmailOrPhone,
 	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.Age, &user.Phone, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -261,7 +299,9 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &Claims{
+		UserID:   user.ID,
 		Username: user.Username,
+		Role:     user.Role,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
@@ -313,14 +353,43 @@ func getUsersHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(users)
 }
 
+// Получение текущих пользователей в приложении
+func getCurrentUserHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value("claims").(*Claims)
+	if !ok {
+		http.Error(w, "Invalid token claims", http.StatusUnauthorized)
+		return
+	}
+
+	var user User
+	err := db.QueryRow(
+		"SELECT id, username, email, role, age, phone, created_at FROM users WHERE id = $1",
+		claims.UserID,
+	).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.Age, &user.Phone, &user.CreatedAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
+}
+
 // CORS Middleware
 func enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+		w.Header().Set("Access-Control-Expose-Headers", "Authorization")
 
 		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
 			return
 		}
 

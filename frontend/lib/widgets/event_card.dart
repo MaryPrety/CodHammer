@@ -61,7 +61,7 @@ class _EventCardState extends State<EventCard> {
                       color: const Color(0xFFFAEFD9),
                       fontSize: 16,
                       fontFamily: _isTranslated ? 'Tomorrow' : 'Cornerita-Regular',
-                      fontWeight: FontWeight.w600,
+                      
                     ),
                   ),
                 ),

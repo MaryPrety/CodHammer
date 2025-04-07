@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import '../widgets/betting_widget.dart';
 import '../widgets/team_info_overlay.dart';
 
-
 class BetPage extends StatefulWidget {
   const BetPage({Key? key}) : super(key: key);
 
@@ -17,6 +16,10 @@ class _BetPageState extends State<BetPage> {
   late VideoPlayerController _videoController;
   bool _isFullScreen = false;
   bool _isRussian = true; // Состояние для переключения языка
+
+  String get currentFontFamily {
+    return _isRussian ? 'Cornerita' : 'Tomorrow';
+  }
 
   @override
   void initState() {
@@ -80,7 +83,7 @@ class _BetPageState extends State<BetPage> {
           style: TextStyle(
             color: const Color(0xFFCDFBE4),
             fontSize: (maxWidth / 6 < 18) ? maxWidth / 6 : 18,
-            fontFamily: 'Cornerita', // Используем пользовательский шрифт
+            fontFamily: currentFontFamily, // Используем пользовательский шрифт
           ),
         ),
         const SizedBox(height: 20),
@@ -205,7 +208,7 @@ class _BetPageState extends State<BetPage> {
           style: TextStyle(
             color: const Color(0xFFCDFBE4),
             fontSize: 16,
-            fontFamily: 'Cornerita', // Используем пользовательский шрифт
+            fontFamily: currentFontFamily, // Используем пользовательский шрифт
           ),
         ),
         GestureDetector(
@@ -215,12 +218,12 @@ class _BetPageState extends State<BetPage> {
           child: Text.rich(
             TextSpan(
               text: email,
-              style: const TextStyle(
-                color: Color.fromRGBO(216, 204, 255, 1),
+              style: TextStyle(
+                color: const Color.fromRGBO(216, 204, 255, 1),
                 fontSize: 16,
-                fontFamily: 'Cornerita', // Используем пользовательский шрифт
+                fontFamily: currentFontFamily, // Используем пользовательский шрифт
                 decoration: TextDecoration.underline,
-                decorationColor: Color.fromRGBO(216, 204, 255, 1),
+                decorationColor: const Color.fromRGBO(216, 204, 255, 1),
               ),
             ),
           ),
@@ -273,6 +276,7 @@ class _BetPageState extends State<BetPage> {
           teamName: teamName,
           coefficient: coefficient,
           isFirstTeam: isFirstTeam,
+          fontFamily: currentFontFamily, // Передаем шрифт в BetOverlay
         );
       },
     );
@@ -295,6 +299,7 @@ class _BetPageState extends State<BetPage> {
           robotDetails: robotDetails,
           imageUrl: imageUrl,
           teamColor: teamColor,
+          fontFamily: currentFontFamily, // Передаем шрифт в TeamInfoOverlay
         );
       },
     );

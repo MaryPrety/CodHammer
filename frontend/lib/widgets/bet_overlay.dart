@@ -9,7 +9,7 @@ class BetOverlay extends StatefulWidget {
     Key? key,
     required this.teamName,
     required this.coefficient,
-    required this.isFirstTeam,
+    required this.isFirstTeam, required String fontFamily,
   }) : super(key: key);
 
   @override

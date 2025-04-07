@@ -7,18 +7,19 @@ import 'pages/register_page.dart';
 import 'services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
-
+import 'package:intl/date_symbol_data_local.dart'; // <--  Импортируйте это!
 
 void main() async {
   setUrlStrategy(PathUrlStrategy());
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('ru_RU', null); // <-- Добавьте эту строку!
 
   final token = await ApiService.getToken();
 
   runApp(MyApp(
     initialRoute: token != null ? '/main' : '/auth',
   ));
-} 
+}
 
 class MyApp extends StatelessWidget {
   final String initialRoute;

@@ -50,7 +50,7 @@ class _InfoTextState extends State<InfoText> {
                   fontSize: 14,
                   height: 1.5,
                   fontFamily: _isTranslated ? 'Tomorrow' : 'Cornerita-Regular',
-                  fontWeight: FontWeight.bold, // Добавлено полужирное начертание
+                  
                 ),
               ),
             ),

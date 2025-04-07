@@ -15,7 +15,7 @@ class TeamInfoOverlay extends StatefulWidget {
     required this.robotName,
     required this.robotDetails,
     required this.imageUrl,
-    required this.teamColor,
+    required this.teamColor, required String fontFamily,
   }) : super(key: key);
 
   @override

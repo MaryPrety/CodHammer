@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String _baseUrl = 'http://localhost:8080'; 
+  static final String _baseUrl = 'http://localhost:8080'; 
 
   // Общий метод для запросов
   static Future<dynamic> _makeRequest(
@@ -17,7 +17,7 @@ class ApiService {
     // Добавляем токен
     final token = await getToken();
     if (token != null) {
-      headers['Authorization'] = token;
+      headers['Authorization'] = 'Bearer $token';
     }
 
     try {
@@ -36,6 +36,22 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Network error: $e');
+    }
+  }
+
+  static Future<void> saveSurveyResults(List<int> answers) async {
+    final token = await getToken();
+    final response = await http.post(
+      Uri.parse('$_baseUrl/save-responses'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'answers': answers}),
+    );
+
+    if (response.statusCode != 201) {
+      throw Exception('Ошибка сохранения результатов опроса');
     }
   }
 
@@ -104,6 +120,21 @@ class ApiService {
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
+  }
+
+  // Получение результатов после опроса
+  static Future<List<dynamic>> getSurveyResults() async {
+    final token = await getToken();
+    final response = await http.get(
+      Uri.parse('$_baseUrl/get-responses'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Ошибка загрузки результатов опроса');
+    }
   }
 
 }

@@ -13,6 +13,8 @@ class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? userData;
   bool isLoading = true;
   String errorMessage = '';
+  List<dynamic> surveyResults = [];
+  bool isLoadingSurvey = true;
 
   final Map<String, double> stats = {
     "Polls": 60,
@@ -26,6 +28,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     _loadUserData();
+    _loadSurveyResults();
   }
 
   Future<void> _loadUserData() async {
@@ -40,6 +43,18 @@ class _ProfilePageState extends State<ProfilePage> {
         errorMessage = 'Ошибка загрузки данных: $e';
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadSurveyResults() async {
+    try {
+      final results = await ApiService.getSurveyResults();
+      setState(() {
+        surveyResults = results;
+        isLoadingSurvey = false;
+      });
+    } catch (e) {
+      setState(() => isLoadingSurvey = false);
     }
   }
 
@@ -61,8 +76,15 @@ class _ProfilePageState extends State<ProfilePage> {
             TextButton(
               child: const Text('Выйти', style: TextStyle(color: Colors.red)),
               onPressed: () async {
+               try { 
                 await ApiService.logout();
-                Navigator.of(context).pop(); 
+                Navigator.of(context).pop();
+                Navigator.of(context).pushReplacementNamed('/auth');
+               } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Ошибка выхода: $e')),
+                );
+               }
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Вы успешно вышли из профиля')),
                 );
@@ -111,6 +133,8 @@ class _ProfilePageState extends State<ProfilePage> {
             _buildRadarChart(),
             const SizedBox(height: 20),
             _buildBarChart(),
+            const SizedBox(height: 20),
+            _buildSurveyResults(),
           ],
         ),
       ),
@@ -172,30 +196,108 @@ class _ProfilePageState extends State<ProfilePage> {
 
 
   Widget _buildRadarChart() {
-    return SizedBox(
-      height: 300,
-      child: RadarChart(
-        RadarChartData(
-          radarTouchData: RadarTouchData(enabled: false),
-          titlePositionPercentageOffset: 0.2,
-          radarShape: RadarShape.polygon,
-          tickCount: 5,
-          tickBorderData: const BorderSide(color: Colors.white24),
-          radarBorderData: const BorderSide(color: Colors.white),
-          radarBackgroundColor: Colors.transparent,
-          dataSets: [
-            RadarDataSet(
-              dataEntries: stats.values.map((e) => RadarEntry(value: e)).toList(),
-              fillColor: Colors.blue.withOpacity(0.3),
-              borderColor: Colors.blue,
-              borderWidth: 2,
-            ),
-          ],
-          titleTextStyle: const TextStyle(color: Colors.white, fontSize: 12),
-        ),
+  List answers = surveyResults.isNotEmpty 
+      ? (surveyResults.first['answers'] as List<dynamic>)
+          .map((e) => e.toDouble())
+          .toList()
+      : [0.0, 0.0, 0.0]; 
+
+  return SizedBox(
+    height: 300,
+    child: RadarChart(
+      RadarChartData(
+        radarTouchData: RadarTouchData(enabled: false),
+        titlePositionPercentageOffset: 0.2,
+        radarShape: RadarShape.polygon,
+        tickCount: 5,
+        tickBorderData: const BorderSide(color: Colors.white24),
+        radarBorderData: const BorderSide(color: Colors.white),
+        radarBackgroundColor: Colors.transparent,
+        dataSets: [
+          RadarDataSet(
+            dataEntries: answers.map((e) => RadarEntry(value: e)).toList(),
+            fillColor: Colors.blue.withOpacity(0.3),
+            borderColor: Colors.blue,
+            borderWidth: 2,
+          ),
+        ],
+        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 12),
       ),
+    ),
+  );
+}
+
+  Widget _buildSurveyResults() {
+  if (isLoadingSurvey) {
+    return const Center(child: CircularProgressIndicator());
+  }
+  
+  if (surveyResults.isEmpty) {
+    return const Center(
+      child: Text(
+        'Вы еще не проходили опросы',
+        style: TextStyle(color: Colors.white, fontSize: 16),
+      )
     );
   }
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Padding(
+        padding: EdgeInsets.only(bottom: 12),
+        child: Text(
+          'История опросов:',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      ...surveyResults.map((result) => Card(
+        color: Colors.white.withOpacity(0.1),
+        margin: const EdgeInsets.only(bottom: 10),
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+          title: Text(
+            'Опрос от ${_formatDate(result['created_at'])}',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 16,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 6),
+              Text(
+                'Ответы:',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                (result['answers'] as List<dynamic>)
+                    .map((a) => '• ${a.toString()}')
+                    .join('\n'),
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      )).toList(),
+    ],
+  );
+}
 
   Widget _buildBarChart() {
     return Column(
@@ -254,6 +356,8 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 }
+
+
 
 class _InfoText extends StatelessWidget {
   final String text;

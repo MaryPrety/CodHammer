@@ -6,12 +6,11 @@ import 'package:cod_hammer/pages/quiz_page.dart';
 import 'package:cod_hammer/pages/register_page.dart';
 import 'package:cod_hammer/services/api_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_web_plugins/flutter_web_plugins.dart';
+
 
 
 
 void main() async {
-  setUrlStrategy(PathUrlStrategy());
   WidgetsFlutterBinding.ensureInitialized();
 
   final token = await ApiService.getToken();

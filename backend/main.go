@@ -49,6 +49,13 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
+// Структура для хранения ответов
+type SurveyResponse struct {
+	UserID    string    `json:"user_id"`
+	Answers   []int     `json:"answers"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 func main() {
 	// Инициализация JWT ключа
 	initJWTKey()
@@ -61,6 +68,7 @@ func main() {
 	router := mux.NewRouter()
 	router.Use(enableCORS)
 
+	//Маршрут регистрации и авторизации
 	router.HandleFunc("/register", registerHandler).Methods("POST", "OPTIONS")
 	router.HandleFunc("/login", loginHandler).Methods("POST", "OPTIONS")
 	// Проверка работы базы данных
@@ -74,8 +82,13 @@ func main() {
 		fmt.Fprint(w, "OK")
 	}).Methods("GET")
 
-	router.Handle("/users", authMiddleware(http.HandlerFunc(getUsersHandler))).Methods("GET", "OPTIONS")
-	router.Handle("/current-user", authMiddleware(http.HandlerFunc(getCurrentUserHandler))).Methods("GET", "OPTIONS")
+	//Маршрут пользователей/текущего пользователя
+	router.Handle("/users", jwtMiddleware(http.HandlerFunc(getUsersHandler))).Methods("GET", "OPTIONS")
+	router.Handle("/current-user", jwtMiddleware(http.HandlerFunc(getCurrentUserHandler))).Methods("GET", "OPTIONS")
+
+	//Маршруты получения/хранения опросника
+	router.Handle("/save-responses", jwtMiddleware(http.HandlerFunc(saveResponsesHandler))).Methods("POST", "OPTIONS")
+	router.Handle("/get-responses", jwtMiddleware(http.HandlerFunc(getResponsesHandler))).Methods("GET", "OPTIONS")
 
 	// Запуск сервера
 	port := os.Getenv("PORT")
@@ -166,12 +179,28 @@ func initDB() {
 		log.Fatal(err)
 	}
 
+	// Таблица ответов
+	createResponsesTableSQL := `
+	CREATE TABLE IF NOT EXISTS user_responses (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        answers JSONB NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+	`
+
+	_, err = db.Exec(createResponsesTableSQL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	fmt.Println("Successfully connected to PostgreSQL")
 
 	router := mux.NewRouter()
 	router.Use(enableCORS)
 }
 
+// Функция Регистрации
 func registerHandler(w http.ResponseWriter, r *http.Request) {
 	var user User
 	err := json.NewDecoder(r.Body).Decode(&user)
@@ -236,33 +265,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
-// Middleware для проверки JWT
-func authMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			http.Error(w, "Authorization header required", http.StatusUnauthorized)
-			return
-		}
-
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		claims := &Claims{}
-
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return jwtKey, nil
-		})
-
-		if err != nil || !token.Valid {
-			http.Error(w, "Invalid token", http.StatusUnauthorized)
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), "claims", claims)
-		next.ServeHTTP(w, r.WithContext(ctx))
-
-	})
-}
-
+// Функция авторизации
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	var creds struct {
 		EmailOrPhone string `json:"emailOrPhone"`
@@ -326,6 +329,36 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func jwtMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, "Authorization header required", http.StatusUnauthorized)
+			return
+		}
+
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		if tokenString == authHeader {
+			http.Error(w, "Invalid token format", http.StatusUnauthorized)
+			return
+		}
+
+		claims := &Claims{}
+		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+			return jwtKey, nil
+		})
+
+		if err != nil || !token.Valid {
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		// Добавляем claims в контекст
+		ctx := context.WithValue(r.Context(), "claims", claims)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 func getUsersHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query("SELECT id, username, email, role, age, phone, created_at FROM users")
 	if err != nil {
@@ -355,29 +388,121 @@ func getUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 // Получение текущих пользователей в приложении
 func getCurrentUserHandler(w http.ResponseWriter, r *http.Request) {
-	claims, ok := r.Context().Value("claims").(*Claims)
-	if !ok {
-		http.Error(w, "Invalid token claims", http.StatusUnauthorized)
+	// Извлечение токена из заголовка
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Authorization header required", http.StatusUnauthorized)
 		return
 	}
 
+	// Проверка формата "Bearer <token>"
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	if tokenString == authHeader {
+		http.Error(w, "Invalid token format", http.StatusUnauthorized)
+		return
+	}
+
+	// Парсинг токена
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtKey, nil
+	})
+
+	if err != nil || !token.Valid {
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	// Поиск пользователя в БД
 	var user User
-	err := db.QueryRow(
+	err = db.QueryRow(
 		"SELECT id, username, email, role, age, phone, created_at FROM users WHERE id = $1",
 		claims.UserID,
 	).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.Age, &user.Phone, &user.CreatedAt)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
-		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(user)
+}
+
+// Обработчик сохранения ответов
+func saveResponsesHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value("claims").(*Claims)
+	if !ok {
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	var responses struct {
+		Answers []int `json:"answers"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&responses); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Сериализация ответов в JSON
+	answersJSON, err := json.Marshal(responses.Answers)
+	if err != nil {
+		http.Error(w, "Failed to serialize answers", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = db.Exec(
+		"INSERT INTO user_responses (user_id, answers) VALUES ($1, $2)",
+		claims.UserID,
+		answersJSON,
+	)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+// Обработчик получения ответов
+func getResponsesHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value("claims").(*Claims)
+	if !ok {
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	rows, err := db.Query(
+		"SELECT answers, created_at FROM user_responses WHERE user_id = $1 ORDER BY created_at DESC",
+		claims.UserID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var responses []map[string]interface{}
+	for rows.Next() {
+		var answers []int
+		var created_At time.Time
+
+		if err := rows.Scan(&answers, &created_At); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		responses = append(responses, map[string]interface{}{
+			"answers":    answers,
+			"created_at": created_At.Format(time.RFC3339),
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responses)
 }
 
 // CORS Middleware

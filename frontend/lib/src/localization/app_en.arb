@@ -1,0 +1,6 @@
+{
+  "appTitle": "auth_reg",
+  "@appTitle": {
+    "description": "The title of the application"
+  }
+}

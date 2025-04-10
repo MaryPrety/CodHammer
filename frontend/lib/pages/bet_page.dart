@@ -1,25 +1,25 @@
+import 'package:cod_hammer/widgets/bet_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter/services.dart';
+import '../widgets/betting_widget.dart';
+import '../widgets/team_info_overlay.dart';
 
 class BetPage extends StatefulWidget {
-  const BetPage({super.key});
+  const BetPage({Key? key}) : super(key: key);
 
   @override
-  _BetPageState createState() => _BetPageState();
+  State<BetPage> createState() => _BetPageState();
 }
 
 class _BetPageState extends State<BetPage> {
   late VideoPlayerController _videoController;
   bool _isFullScreen = false;
-  bool _isEnglish = false;
+  bool _isRussian = true; // Состояние для переключения языка
 
-  // Dynamic percentage values
-  double firstRobotPercentage = 80.0;
-  double secondRobotPercentage = 20.0;
-  double firstRobotCoefficient = 1.143;
-  double secondRobotCoefficient = 2.333;
-  String matchTime = "15:30";
+  String get currentFontFamily {
+    return _isRussian ? 'Cornerita' : 'Tomorrow';
+  }
 
   @override
   void initState() {
@@ -40,206 +40,196 @@ class _BetPageState extends State<BetPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF062B42),
-      body: _isFullScreen ? _buildFullScreenVideo() : _buildMainContent(),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFFCDFBE4),
-        onPressed: _toggleLanguage,
-        child: Text(
-          _isEnglish ? 'RU' : 'EN',
-          style: const TextStyle(
-            color: Color(0xFF062B42),
-            fontWeight: FontWeight.bold,
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _isRussian = !_isRussian; // Переключаем язык при нажатии
+        });
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF062B42),
+        body: _isFullScreen ? _buildFullScreenVideo() : _buildMainContent(),
+      ),
+    );
+  }
+
+  Widget _buildMainContent() {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 20),
+              _buildHeader(constraints.maxWidth),
+              const SizedBox(height: 30),
+              _buildVideoPlayer(constraints.maxWidth),
+              const SizedBox(height: 30),
+              _buildFooter(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader(double maxWidth) {
+    return Column(
+      children: [
+        Text(
+          _isRussian ? 'Битва роботов в Москве \nбитва между Русскими' : 'Roboport of Moscow\nBattle of the Russians',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: const Color(0xFFCDFBE4),
+            fontSize: (maxWidth / 6 < 18) ? maxWidth / 6 : 18,
+            fontFamily: currentFontFamily, // Используем пользовательский шрифт
+          ),
+        ),
+        const SizedBox(height: 20),
+        BettingWidget(
+          firstRobotPercentage: 75.0,
+          secondRobotPercentage: 25.0,
+          firstRobotCoefficient: 1.25,
+          secondRobotCoefficient: 3.50,
+          matchTime: "18:00",
+          firstTeamName: _isRussian ? 'WEBER LABS' : 'WEBER LABS ',
+          secondTeamName: _isRussian ? 'Auxilium AI' : 'Auxilium AI ',
+          onFirstRobotTap: () {
+            _showBetOverlay(context, coefficient: 1.25, teamName: _isRussian ? 'WEBER LABS' : 'WEBER LABS ', isFirstTeam: true);
+          },
+          onSecondRobotTap: () {
+            _showBetOverlay(context, coefficient: 3.50, teamName: _isRussian ? 'Auxilium AI' : 'Auxilium AI ', isFirstTeam: false);
+          },
+          onFirstTeamImageTap: () {
+            _showTeamInfoOverlay(
+              context,
+              teamName: _isRussian ? 'WEBER LABS' : 'WEBER LABS ',
+              teamMembers: _isRussian
+                  ? [
+                      'Алексей Орлеанский',
+                      'Шмелев Александр',
+                      'Жуков Дмитрий',
+                      'Просужих Александр',
+                      'Россия/Москва',
+                    ]
+                  : [
+                      'Alexey d\'Orléans ',
+                      'Shmelev Alexander ',
+                      'Zhukov Dmitry ',
+                      'Progesch Alexander ',
+                      'Russia/Moscow ',
+                    ],
+              robotName: _isRussian ? 'Робот Колобаха' : 'Robot - Kolobah ',
+              robotDetails: _isRussian
+                  ? 'Вертикальная конструкция спиннера RU\вес робота 110(кг)\nSpeed 26 км/ч\nDimensions 630*740*330'
+                  : 'Vertical spinner construction EN\nweight of the robot 110(kg)\nSpeed 26 km/h\nDimensions 630*740*330',
+              imageUrl: 'assets/weber.png',
+              teamColor: const Color(0xFFCDFBE4), // Зеленый для первой команды
+            );
+          },
+          onSecondTeamImageTap: () {
+            _showTeamInfoOverlay(
+              context,
+              teamName: _isRussian ? 'Auxilium AI' : 'Auxilium AI ',
+              teamMembers: _isRussian
+                  ? [
+                      'Ледюков Алексей',
+                      'Петриков Федор',
+                      'Захаров Дмитрий',
+                      'Яременко Андрей',
+                      'Смирнов Иван',
+                      'Russia/Saint Petersburg',
+                    ]
+                  : [
+                      'Ledyukov Alexey ',
+                      'Petrikov Fedor ',
+                      'Zakharov Dmitry ',
+                      'Yasemenko Ivan ',
+                      'Smirnov Ivan ',
+                      'Russia/Saint Petersburg ',
+                    ],
+              robotName: _isRussian ? 'Robot - A.L.F.A' : 'Robot - A.L.F.A ',
+              robotDetails: _isRussian
+                  ? 'Вертикальная конструкция спиннера вес робота 160(кг)\nSpeed 25 км/ч\nDimensions 1200*1200*340'
+                  : 'Vertical spinner construction EN\nweight of the robot 160(kg)\nSpeed 25 km/h\nDimensions 1200*1200*340',
+              imageUrl: 'assets/au.jpg',
+              teamColor: const Color(0xFFFAEFD9), // Желтый для второй команды
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVideoPlayer(double maxWidth) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _isFullScreen = true;
+        });
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: const Color.fromRGBO(205, 251, 228, 0.45),
+              offset: const Offset(-4, 4),
+              blurRadius: 45,
+            ),
+          ],
+        ),
+        child: ClipPath(
+          clipper: OctagonalClipper(),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: VideoPlayer(_videoController),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildMainContent() {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(height: 20),
-          // Header Section
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              children: [
-                Text(
-                  'CodHammer',
-                  style: const TextStyle(
-                    color: Color(0xFFCDFBE4),
-                    fontSize: 30,
-                    fontFamily: 'Tomorrow',
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Roboport of Moscow\nBattle of the Russians',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFFCDFBE4),
-                    fontSize: 18,
-                    fontFamily: 'Tomorrow',
-                  ),
-                ),
-              ],
-            ),
+  Widget _buildFooter() {
+    return Column(
+      children: [
+        _buildContactInfo(_isRussian ? 'На общие вопросы' : 'On general matters', 'info@bitva-robotov.ru'),
+        _buildContactInfo(_isRussian ? 'По участию' : 'On participation', 'team@bitva-robotov.ru'),
+      ],
+    );
+  }
+
+  Widget _buildContactInfo(String title, String email) {
+    return Column(
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            color: const Color(0xFFCDFBE4),
+            fontSize: 16,
+            fontFamily: currentFontFamily, // Используем пользовательский шрифт
           ),
-          const SizedBox(height: 30),
-          // Percentage and Coefficient Block
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFCDFBE4), width: 2),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: ClipPath(
-              clipper: OctagonalClipper(),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFCDFBE4), width: 2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '${firstRobotPercentage.toStringAsFixed(0)}%',
-                          style: const TextStyle(
-                            color: Color(0xFFCDFBE4),
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          '${secondRobotPercentage.toStringAsFixed(0)}%',
-                          style: const TextStyle(
-                            color: Color(0xFFCDFBE4),
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    // Progress Bar
-                    Stack(
-                      children: [
-                        Container(
-                          height: 10,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(5),
-                            color: const Color(0xFF0A3A5A),
-                          ),
-                        ),
-                        FractionallySizedBox(
-                          widthFactor: firstRobotPercentage / 100,
-                          child: Container(
-                            height: 10,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(5),
-                              color: const Color(0xFFCDFBE4),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    // Coefficients
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildCoefficient(firstRobotCoefficient),
-                        _buildCoefficient(secondRobotCoefficient),
-                      ],
-                    ),
-                  ],
-                ),
+        ),
+        GestureDetector(
+          onTap: () {
+            print('Clicked on $email');
+          },
+          child: Text.rich(
+            TextSpan(
+              text: email,
+              style: TextStyle(
+                color: const Color.fromRGBO(216, 204, 255, 1),
+                fontSize: 16,
+                fontFamily: currentFontFamily, // Используем пользовательский шрифт
+                decoration: TextDecoration.underline,
+                decorationColor: const Color.fromRGBO(216, 204, 255, 1),
               ),
             ),
           ),
-          const SizedBox(height: 30),
-          // Video Player with Octagonal Frame
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _isFullScreen = true;
-              });
-              SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-            },
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color.fromRGBO(205, 251, 228, 0.45),
-                    offset: const Offset(-4, 4),
-                    blurRadius: 45,
-                  ),
-                ],
-              ),
-              child: ClipPath(
-                clipper: OctagonalClipper(),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: VideoPlayer(_videoController),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 30),
-          // Footer Section
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              children: [
-                Text(
-                  'On general matters',
-                  style: const TextStyle(
-                    color: Color(0xFFCDFBE4),
-                    fontSize: 16,
-                    fontFamily: 'Tomorrow',
-                  ),
-                ),
-                Text(
-                  'info@bitva-robotov.ru',
-                  style: const TextStyle(
-                    color: Color(0xFFCDFBE4),
-                    fontSize: 16,
-                    fontFamily: 'Tomorrow',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'On participation',
-                  style: const TextStyle(
-                    color: Color(0xFFCDFBE4),
-                    fontSize: 16,
-                    fontFamily: 'Tomorrow',
-                  ),
-                ),
-                Text(
-                  'team@bitva-robotov.ru',
-                  style: const TextStyle(
-                    color: Color(0xFFCDFBE4),
-                    fontSize: 16,
-                    fontFamily: 'Tomorrow',
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 10),
+      ],
     );
   }
 
@@ -277,28 +267,42 @@ class _BetPageState extends State<BetPage> {
     );
   }
 
-  Widget _buildCoefficient(double coefficient) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFCDFBE4),
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: Text(
-        coefficient.toStringAsFixed(3),
-        style: const TextStyle(
-          color: Color(0xFF062B42),
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+  void _showBetOverlay(BuildContext context,
+      {required double coefficient, required String teamName, required bool isFirstTeam}) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return BetOverlay(
+          teamName: teamName,
+          coefficient: coefficient,
+          isFirstTeam: isFirstTeam,
+          fontFamily: currentFontFamily, // Передаем шрифт в BetOverlay
+        );
+      },
     );
   }
 
-  void _toggleLanguage() {
-    setState(() {
-      _isEnglish = !_isEnglish;
-    });
+  void _showTeamInfoOverlay(BuildContext context,
+      {required String teamName,
+      required List<String> teamMembers,
+      required String robotName,
+      required String robotDetails,
+      required String imageUrl,
+      required Color teamColor}) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return TeamInfoOverlay(
+          teamName: teamName,
+          teamMembers: teamMembers,
+          robotName: robotName,
+          robotDetails: robotDetails,
+          imageUrl: imageUrl,
+          teamColor: teamColor,
+          fontFamily: currentFontFamily, // Передаем шрифт в TeamInfoOverlay
+        );
+      },
+    );
   }
 }
 
@@ -307,14 +311,16 @@ class OctagonalClipper extends CustomClipper<Path> {
   Path getClip(Size size) {
     final path = Path();
     final double cut = size.width / 6;
+
     path.moveTo(cut, 0);
     path.lineTo(size.width - cut, 0);
-    path.lineTo(size.width, cut);
+    path.quadraticBezierTo(size.width, 0, size.width, cut);
     path.lineTo(size.width, size.height - cut);
-    path.lineTo(size.width - cut, size.height);
+    path.quadraticBezierTo(size.width, size.height, size.width - cut, size.height);
     path.lineTo(cut, size.height);
-    path.lineTo(0, size.height - cut);
+    path.quadraticBezierTo(0, size.height, 0, size.height - cut);
     path.lineTo(0, cut);
+    path.quadraticBezierTo(0, 0, cut, 0);
     path.close();
     return path;
   }

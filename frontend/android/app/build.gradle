@@ -7,16 +7,18 @@ plugins {
 
 android {
     namespace = "com.example.cod_hammer"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35
+    compileSdkVersion 35
     ndkVersion = flutter.ndkVersion
+    compileSdk = flutter.compileSdkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_18
+        targetCompatibility JavaVersion.VERSION_18
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
+        jvmTarget = JavaVersion.VERSION_18
     }
 
     defaultConfig {

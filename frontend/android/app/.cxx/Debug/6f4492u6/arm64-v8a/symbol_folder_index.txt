@@ -1,0 +1,1 @@
+C:\Users\Minisforum\Desktop\myapp\frontend\build\app\intermediates\cxx\Debug\6f4492u6\obj\arm64-v8a

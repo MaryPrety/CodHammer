@@ -1,0 +1,92 @@
+name: cod_hammer
+description: "Cod Hammer - A Flutter project for managing and visualizing data."
+publish_to: 'none' # Убедитесь, что проект не публикуется случайно.
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0" # Убедитесь, что версия SDK указана правильно (используйте диапазон).
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  google_fonts: ^4.0.3
+  intl: ^0.18.1
+  table_calendar: ^3.0.9
+  flutter_svg: ^2.0.17
+  translator: ^1.0.3+1
+  video_player: ^2.6.0
+  fl_chart: ^0.70.2
+  chewie: ^1.2.2
+  http: ^1.3.0
+  shared_preferences: ^2.5.3
+  wakelock: ^0.6.2  
+  url_launcher: ^6.1.10
+  pie_chart: ^5.4.0 
+  percent_indicator: ^4.2.2
+  flutter_image_stack: ^0.0.7
+  flutter_blurhash: ^0.5.0  
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true # Включает использование Material Design.
+  generate: true # Добавьте эту строку, если используете локализации или генерацию кода.
+
+  fonts:
+    - family: Cornerita
+      fonts:
+        - asset: assets/fonts/Cornerita-Regular.ttf
+    - family: StalinistOne
+      fonts:
+        - asset: assets/fonts/StalinistOne-Regular.ttf
+    - family: Tomorrow
+      fonts:
+        - asset: assets/fonts/Tomorrow-Regular.ttf
+
+  assets:
+    # Убедитесь, что пути к файлам указаны правильно.
+    - assets/avatar_1.png
+    - assets/avatar_2.png
+    - assets/avatar_actual.png
+    - assets/avatar_passed.png
+    - assets/Active_bet.png
+    - assets/Active_calendar.png
+    - assets/Active_person.png
+    - assets/Active_quiz.png
+    - assets/Bet.png
+    - assets/Calendar.png
+    - assets/Evtihiev.png
+    - assets/Fight_robots.png
+    - assets/Person.png
+    - assets/Quiz.png
+    - assets/Bet_.png
+    - assets/Quiz_.png
+    - assets/time_actual.png
+    - assets/time_passed.png
+    - assets/videos/sample_video.mp4
+    - assets/au.jpg
+    - assets/weber.png
+    - assets/вебер_лабс.jpg
+    - assets/auxilium_ai.jpeg
+    - assets/screw.png
+    - assets/quiz.svg
+    - assets/Active_bag.png
+    - assets/bag.png
+    - assets/Active_story.png
+    - assets/story.png
+    - assets/return.png
+    - assets/Active_return.png 
+    - assets/mirea_blouse.jpg
+    - assets/mirea_cup.jpg
+    - assets/mirea_notepad.jpg
+    - assets/mirea_pencilbox.jpg
+    - assets/mirea_sweatshirt.jpg
+    - assets/mirea_thermos.jpg
+    - assets/robot_cap.png
+    - assets/robot_T-shirt.png
+    - assets/robot_backpack.png

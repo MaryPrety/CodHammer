@@ -1,3 +1,5 @@
+// ignore_for_file: library_private_types_in_public_api
+
 import 'package:flutter/material.dart';
 
 class TeamInfoOverlay extends StatefulWidget {
@@ -9,14 +11,14 @@ class TeamInfoOverlay extends StatefulWidget {
   final Color teamColor; // Цвет фона для команды
 
   const TeamInfoOverlay({
-    Key? key,
+    super.key,
     required this.teamName,
     required this.teamMembers,
     required this.robotName,
     required this.robotDetails,
     required this.imageUrl,
-    required this.teamColor, required String fontFamily,
-  }) : super(key: key);
+    required this.teamColor,
+  });
 
   @override
   _TeamInfoOverlayState createState() => _TeamInfoOverlayState();

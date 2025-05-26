@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static final String _baseUrl = 'http://localhost:8080'; 
+  static const String _baseUrl = 'http://89.111.173.26:8080'; 
 
   // Общий метод для запросов
   static Future<dynamic> _makeRequest(
@@ -39,22 +39,6 @@ class ApiService {
     }
   }
 
-  static Future<void> saveSurveyResults(List<int> answers) async {
-    final token = await getToken();
-    final response = await http.post(
-      Uri.parse('$_baseUrl/save-responses'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({'answers': answers}),
-    );
-
-    if (response.statusCode != 201) {
-      throw Exception('Ошибка сохранения результатов опроса');
-    }
-  }
-
   // Регистрация
   static Future<dynamic> register({
     required String username,
@@ -74,34 +58,35 @@ class ApiService {
         'phone': phone,
       },
     );
+    
   }
 
   // Авторизация
   static Future<dynamic> login(String emailOrPhone, String password) async {
-    final response = await _makeRequest(
-      'POST',
-      '/login',
-      {
-        'emailOrPhone': emailOrPhone,
-        'password': password,
-      },
-    );
-    
-    // Сохраняем токен
-    if (response['token'] != null) {
-      await _saveToken(response['token']);
+    try {
+      final response = await _makeRequest(
+        'POST',
+        '/login',
+        {
+          'emailOrPhone': emailOrPhone,
+          'password': password,
+        },
+      );
+      
+      if (response is Map && response['token'] != null) {
+        await _saveToken(response['token']);
+        return response;
+      } else {
+        throw Exception('Токен не получен в ответе сервера');
+      }
+    } catch (e) {
+      throw Exception('Ошибка входа: $e');
     }
-    
-    return response;
   }
 
   // Получение списка пользователей
   static Future<List<dynamic>> getUsers() async {
     return await _makeRequest('GET', '/users', null);
-  }
-
-  static Future<Map<String, dynamic>> getCurrentUser() async {
-    return await _makeRequest('GET', '/current-user', null);
   }
 
   // Сохранение токена
@@ -122,19 +107,10 @@ class ApiService {
     await prefs.remove('auth_token');
   }
 
-  // Получение результатов после опроса
-  static Future<List<dynamic>> getSurveyResults() async {
-    final token = await getToken();
-    final response = await http.get(
-      Uri.parse('$_baseUrl/get-responses'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Ошибка загрузки результатов опроса');
-    }
+  // Получение профиля пользователя
+  static Future<Map<String, dynamic>> getProfile() async {
+    final response = await _makeRequest('GET', '/profile', null);
+    return response;
   }
 
 }

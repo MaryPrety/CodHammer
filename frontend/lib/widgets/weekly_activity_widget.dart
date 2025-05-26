@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 
 class WeeklyActivityWidget extends StatelessWidget {
@@ -8,13 +10,13 @@ class WeeklyActivityWidget extends StatelessWidget {
   final Color cardColor;
 
   const WeeklyActivityWidget({
-    Key? key,
+    super.key,
     required this.weeklyData,
     required this.attendanceGradient,
     required this.hackathonsGradient,
     required this.pollsGradient,
     required this.cardColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

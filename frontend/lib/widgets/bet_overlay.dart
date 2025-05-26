@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 class BetOverlay extends StatefulWidget {
@@ -6,11 +7,11 @@ class BetOverlay extends StatefulWidget {
   final bool isFirstTeam; // true = первая команда (зеленый), false = вторая команда (желтый)
 
   const BetOverlay({
-    Key? key,
+    super.key,
     required this.teamName,
     required this.coefficient,
     required this.isFirstTeam, required String fontFamily,
-  }) : super(key: key);
+  });
 
   @override
   _BetOverlayState createState() => _BetOverlayState();
@@ -19,9 +20,9 @@ class BetOverlay extends StatefulWidget {
 class _BetOverlayState extends State<BetOverlay> {
   final TextEditingController _betAmountController = TextEditingController();
   double _totalPotential = 0.0;
-  bool _isRussian = true; // Состояние для переключения языка
+  bool _isRussian = true; 
 
-  // Метод для расчета потенциального выигрыша
+  
   void _calculateTotal() {
     final betAmount = double.tryParse(_betAmountController.text);
     if (betAmount != null && betAmount > 0) {

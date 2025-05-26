@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use, avoid_print
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:math';
@@ -9,12 +11,12 @@ class RadarChartWidget extends StatelessWidget {
   final Color cardColor;
 
   const RadarChartWidget({
-    Key? key,
+    super.key,
     required this.stats,
     required this.glowColor,
     required this.tertiaryColor,
     required this.cardColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

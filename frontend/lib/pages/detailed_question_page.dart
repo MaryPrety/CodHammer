@@ -1,8 +1,5 @@
-import 'package:cod_hammer/main.dart';
-import 'package:cod_hammer/services/api_service.dart';
 import 'package:flutter/material.dart';
-import 'package:percent_indicator/circular_percent_indicator.dart';
-import 'package:pie_chart/pie_chart.dart';
+import 'survey_page.dart';
 
 class DetailedQuestionPage extends StatefulWidget {
   const DetailedQuestionPage({super.key});
@@ -13,8 +10,15 @@ class DetailedQuestionPage extends StatefulWidget {
 
 class _DetailedQuestionPageState extends State<DetailedQuestionPage> {
   int _currentQuestionIndex = 0;
-  List<int?> _answers = [null, null, null]; // Store selected answer index for each question
-  bool _isRussian = true; // Language state - you might want to pass this from QuizPage
+  final List<int?> _answers = [
+    null,
+    null,
+    null
+  ]; // Store selected answer index for each question
+
+  static const Color secondaryColor = Color.fromRGBO(205, 251, 228, 1);
+  static const Color tertiaryColor = Color(0xFFB19CD9);
+  static const Color glowColor = Color(0xFFFAEFD9);
 
   final List<Map<String, dynamic>> _questions = [
     {
@@ -27,7 +31,8 @@ class _DetailedQuestionPageState extends State<DetailedQuestionPage> {
       ],
     },
     {
-      'question': 'Question 2 : If you could choose a gift card for betting points, which of these options would attract ?',
+      'question':
+          'Question 2 : If you could choose a gift card for betting points, which of these options would attract ?',
       'options': [
         'Exclusive gadget (such as smart watch)',
         'Gift card to your favorite store or online platform',
@@ -35,7 +40,8 @@ class _DetailedQuestionPageState extends State<DetailedQuestionPage> {
       ],
     },
     {
-      'question': 'Question 3 : If you were a participant in the robot battle, what souvenir would you choose?',
+      'question':
+          'Question 3 : If you were a participant in the robot battle, what souvenir would you choose?',
       'options': [
         'Combat robot with lighting and sound effects',
         'T-shirt or hoodie with unique design',
@@ -43,10 +49,6 @@ class _DetailedQuestionPageState extends State<DetailedQuestionPage> {
       ],
     },
   ];
-
-  String get currentFontFamily {
-    return _isRussian ? 'Cornerita' : 'Tomorrow';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,94 +67,156 @@ class _DetailedQuestionPageState extends State<DetailedQuestionPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Image.asset('assets/Fight_robots.png', height: 120), // Question Image
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  // ignore: deprecated_member_use
+                  color: glowColor.withOpacity(0.8),
+                  width: 3,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    // ignore: deprecated_member_use
+                    color: glowColor.withOpacity(0.4),
+                    offset: const Offset(0, 0),
+                    blurRadius: 6,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.asset(
+                  'assets/Fight_robots.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Image.asset(
+                      'assets/placeholder.png',
+                      fit: BoxFit.cover,
+                    );
+                  },
+                ),
+              ),
+            ),
             const SizedBox(height: 20),
             Text(
               _questions[_currentQuestionIndex]['question'],
-              style: TextStyle(
-                color: const Color(0xFFCDFBE4),
+              style: const TextStyle(
+                color: Color.fromRGBO(205, 251, 228, 1),
                 fontSize: 20,
-                fontFamily: currentFontFamily,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 20),
-            Column(
-              children: (_questions[_currentQuestionIndex]['options'] as List<String>)
-                  .asMap()
-                  .entries
-                  .map((entry) {
-                int index = entry.key;
-                String option = entry.value;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _answers[_currentQuestionIndex] = index;
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _answers[_currentQuestionIndex] == index
-                          ? const Color(0xFFCDFBE4) // Highlight selected option
-                          : const Color(0xFFE0F7FA).withOpacity(0.2),
-                      foregroundColor: const Color(0xFFCDFBE4),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    ),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        '${index + 1}  $option',
-                        style: TextStyle(
-                          fontFamily: currentFontFamily,
-                          fontWeight: FontWeight.bold,
-                          color: _answers[_currentQuestionIndex] == index ? const Color(0xFF062B42) : const Color(0xFFCDFBE4),
+            Expanded(
+              child: ListView.builder(
+                itemCount: (_questions[_currentQuestionIndex]['options']
+                        as List<String>)
+                    .length,
+                itemBuilder: (context, index) {
+                  String option = (_questions[_currentQuestionIndex]['options']
+                      as List<String>)[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          _answers[_currentQuestionIndex] = index;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8.0, vertical: 6.0),
+                        decoration: BoxDecoration(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: _answers[_currentQuestionIndex] == index
+                                // ignore: deprecated_member_use
+                                ? secondaryColor.withOpacity(
+                                    0.4) // Glow effect when selected
+                                : tertiaryColor, // Normal border color
+                            width: 2.0,
+                          ),
+                          boxShadow: _answers[_currentQuestionIndex] == index
+                              ? [
+                                  BoxShadow(
+                                    // ignore: deprecated_member_use
+                                    color: secondaryColor.withOpacity(0.4),
+                                    offset: const Offset(0, 0),
+                                    blurRadius: 6,
+                                    spreadRadius: 2,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                option,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Color.fromRGBO(205, 251, 228, 1),
+                                  fontSize: 14,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                },
+              ),
             ),
-            const Spacer(),
+            const SizedBox(height: 20),
             Center(
               child: ElevatedButton(
-                onPressed: () async {
-                  if (_currentQuestionIndex < _questions.length - 1) {
-                    setState(() => _currentQuestionIndex++);
-                  } else {
-                    try {
-                      await ApiService.saveSurveyResults(
-                        _answers.map((a) => a ?? 0).toList()
-                      );
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SurveyResultsPage(answers: _answers),
-                        ),
-                      );
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Ошибка сохранения: $e')),
-                      );
-                    }
-                  }
-                },
+                onPressed: _answers[_currentQuestionIndex] != null
+                    ? () {
+                        if (_currentQuestionIndex < _questions.length - 1) {
+                          setState(() {
+                            _currentQuestionIndex++;
+                          });
+                        } else {
+                          // Show Results Page or Logic here
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  SurveyResultsPage(answers: _answers),
+                            ),
+                          );
+                        }
+                      }
+                    : null, // Disable button if no answer selected
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFCDFBE4),
-                  foregroundColor: const Color(0xFF062B42),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 10), // Adjusted padding
+                  backgroundColor:
+                      tertiaryColor, // Purple background for the button
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 5, // Add elevation for shadow effect
+                  // ignore: deprecated_member_use
+                  shadowColor: tertiaryColor.withOpacity(0.4), // Shadow color
                 ),
                 child: Text(
-                  _currentQuestionIndex < _questions.length - 1 ? 'Continue' : 'Finish',
-                  style: TextStyle(
-                    fontFamily: currentFontFamily,
+                  _currentQuestionIndex < _questions.length - 1
+                      ? 'Continue'
+                      : 'Finish',
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
+                    color: Color(0xFF062B42),
                   ),
                 ),
               ),
@@ -161,320 +225,6 @@ class _DetailedQuestionPageState extends State<DetailedQuestionPage> {
           ],
         ),
       ),
-    );
-  }
-}
-
-
-class SurveyResultsPage extends StatelessWidget {
-  final List<int?> answers; // Receive answers from DetailedQuestionPage
-  const SurveyResultsPage({super.key, required this.answers});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF062B42),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 40),
-            Text(
-              'Результаты опроса',
-              style: TextStyle(
-                fontFamily: 'Cornerita',
-                color: const Color(0xFF90EE90),
-                fontSize: 40,
-              ),
-            ),
-            const SizedBox(height: 30),
-            Text(
-              'Спасибо за участие! Вот статистика ответов:',
-              style: TextStyle(
-                fontFamily: 'Cornerita',
-                color: Colors.white,
-                fontSize: 20,
-              ),
-            ),
-            const SizedBox(height: 30),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    Question1Result(), // No need to pass answers for now, using dummy data
-                    const SizedBox(height: 30),
-                    Question2Result(),
-                    const SizedBox(height: 30),
-                    Question3Result(),
-                    const SizedBox(height: 40),
-                  ],
-                ),
-              ),
-            ),
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => MainNavigation())
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF90EE90),
-                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: Text(
-                  'Завершить',
-                  style: TextStyle(
-                    fontFamily: 'Cornerita',
-                    color: const Color(0xFF0E1621),
-                    fontSize: 20,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class Question1Result extends StatelessWidget {
-  const Question1Result({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final Map<String, double> dataMap = {
-      "Да, мне нравится наблюдать": 60,
-      "Да, я участвую": 15,
-      "Нет, мне не интересно": 20,
-      "Нейтрально": 5,
-    };
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '1. Ваш интерес к технологическим мероприятиям:',
-          style: TextStyle(
-            fontFamily: 'Cornerita',
-            color: Colors.white,
-            fontSize: 20,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: dataMap.entries.map((entry) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.hexagon, color: Color(0xFFDAF7A8), size: 12),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${entry.key} - ${entry.value.toInt()}%',
-                          style: TextStyle(
-                            fontFamily: 'Cornerita',
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            SizedBox(
-              width: 150,
-              height: 150,
-              child: PieChart(
-                dataMap: dataMap,
-                animationDuration: const Duration(milliseconds: 800),
-                chartRadius: MediaQuery.of(context).size.width / 6,
-                colorList: const [
-                  Color(0xFFDAF7A8),
-                  Color(0xFFC0B2D6),
-                  Color(0xFF8D72C1),
-                  Color(0xFF6B48FF),
-                ],
-                initialAngleInDegree: 0,
-                chartType: ChartType.disc,
-                legendOptions: const LegendOptions(
-                  showLegends: false,
-                ),
-                chartValuesOptions: const ChartValuesOptions(
-                  showChartValues: false,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class Question2Result extends StatelessWidget {
-  const Question2Result({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final Map<String, double> dataMap = {
-      "Эксклюзивный гаджет": 60,
-      "Подарочная карта": 25,
-      "Впечатление или мероприятие": 15,
-    };
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '2. Предпочтения в вознаграждениях:',
-          style: TextStyle(
-            fontFamily: 'Cornerita',
-            color: Colors.white,
-            fontSize: 20,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: dataMap.entries.map((entry) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.hexagon, color: Color(0xFFDAF7A8), size: 12),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${entry.key} - ${entry.value.toInt()}%',
-                          style: TextStyle(
-                            fontFamily: 'Cornerita',
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            SizedBox(
-              width: 150,
-              height: 150,
-              child: PieChart(
-                dataMap: dataMap,
-                animationDuration: const Duration(milliseconds: 800),
-                chartRadius: MediaQuery.of(context).size.width / 6,
-                colorList: const [
-                  Color(0xFFDAF7A8),
-                  Color(0xFFC0B2D6),
-                  Color(0xFF8D72C1),
-                ],
-                initialAngleInDegree: 0,
-                chartType: ChartType.disc,
-                legendOptions: const LegendOptions(
-                  showLegends: false,
-                ),
-                chartValuesOptions: const ChartValuesOptions(
-                  showChartValues: false,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class Question3Result extends StatelessWidget {
-  const Question3Result({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final Map<String, double> dataMap = {
-      "Боевой робот": 45,
-      "Футболка или толстовка": 15,
-      "Интерактивный набор": 40,
-    };
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '3. Выбор сувенира участника:',
-          style: TextStyle(
-            fontFamily: 'Cornerita',
-            color: Colors.white,
-            fontSize: 20,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: dataMap.entries.map((entry) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.hexagon, color: Color(0xFFDAF7A8), size: 12),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${entry.key} - ${entry.value.toInt()}%',
-                          style: TextStyle(
-                            fontFamily: 'Cornerita',
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            SizedBox(
-              width: 150,
-              height: 150,
-              child: PieChart(
-                dataMap: dataMap,
-                animationDuration: const Duration(milliseconds: 800),
-                chartRadius: MediaQuery.of(context).size.width / 6,
-                colorList: const [
-                  Color(0xFFDAF7A8),
-                  Color(0xFFC0B2D6),
-                  Color(0xFF8D72C1),
-                ],
-                initialAngleInDegree: 0,
-                chartType: ChartType.disc,
-                legendOptions: const LegendOptions(
-                  showLegends: false,
-                ),
-                chartValuesOptions: const ChartValuesOptions(
-                  showChartValues: false,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 }

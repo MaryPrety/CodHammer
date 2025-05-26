@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:cod_hammer/pages/detailed_question_page.dart';
 import 'package:flutter/material.dart';
 
@@ -115,13 +117,13 @@ class _QuizPageState extends State<QuizPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Изображение вопроса с восьмиугольной рамкой и свечением
-        InkWell( // Make only the image tappable
+        InkWell(
           onTap: () {
             if (questionNumber == 1) {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => DetailedQuestionPage(), // Navigate to DetailedQuestionPage
+                  builder: (context) => DetailedQuestionPage(),
                 ),
               );
             }
@@ -132,7 +134,7 @@ class _QuizPageState extends State<QuizPage> {
             height: (isMobile ? 80 : 90) / aspectRatio,
           ),
         ),
-        const SizedBox(width: 5),
+        const SizedBox(width: 10), // Увеличен отступ между изображением и текстом
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,7 +149,7 @@ class _QuizPageState extends State<QuizPage> {
                         height: 15 / 0.75,
                         fit: BoxFit.contain,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 8), // Увеличен отступ между иконкой и текстом
                       // Перевод времени
                       LanguageSensitiveText(
                         russianText: timeLeft,
@@ -157,7 +159,7 @@ class _QuizPageState extends State<QuizPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(width: 28),
+                  const SizedBox(width: 36), // Увеличен отступ между блоками
                   Row(
                     children: [
                       Image.asset(
@@ -166,7 +168,7 @@ class _QuizPageState extends State<QuizPage> {
                         height: 15,
                         fit: BoxFit.contain,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 8), // Увеличен отступ между иконкой и текстом
                       // Перевод количества голосов
                       LanguageSensitiveText(
                         russianText: votes,
@@ -178,7 +180,7 @@ class _QuizPageState extends State<QuizPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 10), // Увеличен отступ между строками
               // Перевод основного текста вопроса
               LanguageSensitiveText(
                 russianText: question,
@@ -207,7 +209,7 @@ class _QuizPageState extends State<QuizPage> {
           width: isMobile ? 50 : 60,
           height: isMobile ? 50 : 60,
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 15), // Увеличен отступ между аватаром и текстом
         Expanded(
           child: LanguageSensitiveText(
             russianText: comment,
@@ -221,44 +223,45 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   // Метод для создания закругленной рамки с изображением
-  Widget _buildOctagonFrame({
-    required String imageUrl,
-    required double width,
-    required double height,
-  }) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15), // Закругленные углы
-        border: Border.all(
-          color: Colors.white.withOpacity(0.9), // Более яркий ободок
-          width: 3, // Увеличенная толщина ободка
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color.fromRGBO(250, 239, 217, 0.3), // Уменьшенное свечение intensity
-            offset: const Offset(0, 0),
-            blurRadius: 8, // Уменьшен радиус размытия
-            spreadRadius: 2, // Уменьшено расширение свечения
-          ),
-        ],
+Widget _buildOctagonFrame({
+  required String imageUrl,
+  required double width,
+  required double height,
+}) {
+  return Container(
+    width: width,
+    height: height,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(18), // Закругленные углы
+      border: Border.all(
+        color: Colors.white.withOpacity(0.8), // Более яркий ободок
+        width: 3, // Увеличенная толщина ободка
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15), // Закругленные углы для изображения
-        child: Image.asset(
-          imageUrl,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Image.asset(
-              'assets/placeholder.png',
-              fit: BoxFit.cover,
-            );
-          },
+      boxShadow: [
+        BoxShadow(
+          color: Colors.white.withOpacity(0.4),
+          offset: const Offset(0, 0), // Смещение тени
+          blurRadius: 6, // Радиус размытия
+          spreadRadius: 2, // Расширение свечения
         ),
+      ],
+    ),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(14), // Закругленные углы для изображения
+      child: Image.asset(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Image.asset(
+            'assets/placeholder.png',
+            fit: BoxFit.cover,
+          );
+        },
       ),
-    );
-  }
+    ),
+  );
+}
+
 }
 
 // Виджет для отображения текста с учетом языка
@@ -286,9 +289,8 @@ class LanguageSensitiveText extends StatelessWidget {
       isRussian ? russianText : englishText,
       style: TextStyle(
         color: const Color(0xFFCDFBE4),
-        fontSize: isMobile ? 16 : 20,
+        fontSize: isRussian ? 16 : 14, // Разные размеры шрифта для русского и английского
         fontFamily: currentFontFamily,
-        fontWeight: FontWeight.bold, // Добавлено полужирное начертание
       ),
     );
   }

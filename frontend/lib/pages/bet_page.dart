@@ -6,7 +6,7 @@ import '../widgets/betting_widget.dart';
 import '../widgets/team_info_overlay.dart';
 
 class BetPage extends StatefulWidget {
-  const BetPage({Key? key}) : super(key: key);
+  const BetPage({super.key});
 
   @override
   State<BetPage> createState() => _BetPageState();
@@ -24,12 +24,13 @@ class _BetPageState extends State<BetPage> {
   @override
   void initState() {
     super.initState();
-    _videoController = VideoPlayerController.asset('assets/videos/sample_video.mp4')
-      ..initialize().then((_) {
-        setState(() {});
-        _videoController.play();
-        _videoController.setLooping(true);
-      });
+    _videoController =
+        VideoPlayerController.asset('assets/videos/sample_video.mp4')
+          ..initialize().then((_) {
+            setState(() {});
+            _videoController.play();
+            _videoController.setLooping(true);
+          });
   }
 
   @override
@@ -67,6 +68,7 @@ class _BetPageState extends State<BetPage> {
               _buildVideoPlayer(constraints.maxWidth),
               const SizedBox(height: 30),
               _buildFooter(),
+              const SizedBox(height: 20),
             ],
           ),
         );
@@ -78,7 +80,9 @@ class _BetPageState extends State<BetPage> {
     return Column(
       children: [
         Text(
-          _isRussian ? 'Битва роботов в Москве \nбитва между Русскими' : 'Roboport of Moscow\nBattle of the Russians',
+          _isRussian
+              ? 'Битва роботов в Москве \nбитва между Русскими'
+              : 'Roboport of Moscow\nBattle of the Russians',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFFCDFBE4),
@@ -96,10 +100,16 @@ class _BetPageState extends State<BetPage> {
           firstTeamName: _isRussian ? 'WEBER LABS' : 'WEBER LABS ',
           secondTeamName: _isRussian ? 'Auxilium AI' : 'Auxilium AI ',
           onFirstRobotTap: () {
-            _showBetOverlay(context, coefficient: 1.25, teamName: _isRussian ? 'WEBER LABS' : 'WEBER LABS ', isFirstTeam: true);
+            _showBetOverlay(context,
+                coefficient: 1.25,
+                teamName: _isRussian ? 'WEBER LABS' : 'WEBER LABS ',
+                isFirstTeam: true);
           },
           onSecondRobotTap: () {
-            _showBetOverlay(context, coefficient: 3.50, teamName: _isRussian ? 'Auxilium AI' : 'Auxilium AI ', isFirstTeam: false);
+            _showBetOverlay(context,
+                coefficient: 3.50,
+                teamName: _isRussian ? 'Auxilium AI' : 'Auxilium AI ',
+                isFirstTeam: false);
           },
           onFirstTeamImageTap: () {
             _showTeamInfoOverlay(
@@ -122,7 +132,7 @@ class _BetPageState extends State<BetPage> {
                     ],
               robotName: _isRussian ? 'Робот Колобаха' : 'Robot - Kolobah ',
               robotDetails: _isRussian
-                  ? 'Вертикальная конструкция спиннера RU\вес робота 110(кг)\nSpeed 26 км/ч\nDimensions 630*740*330'
+                  ? 'Вертикальная конструкция спиннера RUвес робота 110(кг)\nSpeed 26 км/ч\nDimensions 630*740*330'
                   : 'Vertical spinner construction EN\nweight of the robot 110(kg)\nSpeed 26 km/h\nDimensions 630*740*330',
               imageUrl: 'assets/weber.png',
               teamColor: const Color(0xFFCDFBE4), // Зеленый для первой команды
@@ -194,8 +204,11 @@ class _BetPageState extends State<BetPage> {
   Widget _buildFooter() {
     return Column(
       children: [
-        _buildContactInfo(_isRussian ? 'На общие вопросы' : 'On general matters', 'info@bitva-robotov.ru'),
-        _buildContactInfo(_isRussian ? 'По участию' : 'On participation', 'team@bitva-robotov.ru'),
+        _buildContactInfo(
+            _isRussian ? 'На общие вопросы' : 'On general matters',
+            'info@bitva-robotov.ru'),
+        _buildContactInfo(_isRussian ? 'По участию' : 'On participation',
+            'team@bitva-robotov.ru'),
       ],
     );
   }
@@ -213,6 +226,7 @@ class _BetPageState extends State<BetPage> {
         ),
         GestureDetector(
           onTap: () {
+            // ignore: avoid_print
             print('Clicked on $email');
           },
           child: Text.rich(
@@ -221,7 +235,8 @@ class _BetPageState extends State<BetPage> {
               style: TextStyle(
                 color: const Color.fromRGBO(216, 204, 255, 1),
                 fontSize: 16,
-                fontFamily: currentFontFamily, // Используем пользовательский шрифт
+                fontFamily:
+                    currentFontFamily, // Используем пользовательский шрифт
                 decoration: TextDecoration.underline,
                 decorationColor: const Color.fromRGBO(216, 204, 255, 1),
               ),
@@ -268,7 +283,9 @@ class _BetPageState extends State<BetPage> {
   }
 
   void _showBetOverlay(BuildContext context,
-      {required double coefficient, required String teamName, required bool isFirstTeam}) {
+      {required double coefficient,
+      required String teamName,
+      required bool isFirstTeam}) {
     showDialog(
       context: context,
       builder: (context) {
@@ -299,7 +316,6 @@ class _BetPageState extends State<BetPage> {
           robotDetails: robotDetails,
           imageUrl: imageUrl,
           teamColor: teamColor,
-          fontFamily: currentFontFamily, // Передаем шрифт в TeamInfoOverlay
         );
       },
     );
@@ -316,7 +332,8 @@ class OctagonalClipper extends CustomClipper<Path> {
     path.lineTo(size.width - cut, 0);
     path.quadraticBezierTo(size.width, 0, size.width, cut);
     path.lineTo(size.width, size.height - cut);
-    path.quadraticBezierTo(size.width, size.height, size.width - cut, size.height);
+    path.quadraticBezierTo(
+        size.width, size.height, size.width - cut, size.height);
     path.lineTo(cut, size.height);
     path.quadraticBezierTo(0, size.height, 0, size.height - cut);
     path.lineTo(0, cut);

@@ -1,0 +1,2 @@
+C:/Users/Minisforum/Desktop/myapp/frontend/android/app/.cxx/RelWithDebInfo/6j541r5s/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/Minisforum/Desktop/myapp/frontend/android/app/.cxx/RelWithDebInfo/6j541r5s/armeabi-v7a/CMakeFiles/rebuild_cache.dir

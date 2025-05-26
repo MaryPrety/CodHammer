@@ -1,353 +1,139 @@
-import 'package:cod_hammer/services/api_service.dart';
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:cod_hammer/widgets/user_info_card_widget.dart';
+import 'package:cod_hammer/widgets/radar_chart_widget.dart';
+import 'package:cod_hammer/widgets/weekly_activity_widget.dart';
+import 'package:cod_hammer/widgets/avatar_widget.dart';
+import 'package:cod_hammer/services/api_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
   @override
-  _ProfilePageState createState() => _ProfilePageState();
+  State<ProfilePage> createState() => _ProfilePageState();
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  Map<String, dynamic>? userData;
-  bool isLoading = true;
-  String errorMessage = '';
-  List<dynamic> surveyResults = [];
-  bool isLoadingSurvey = true;
+  static const _secondaryColor = Color.fromRGBO(205, 251, 228, 1);
+  static const _tertiaryColor = Color(0xFFB19CD9);
+  static const _glowColor = Color(0xFFFAEFD9);
+  static const _backgroundColor = Color(0xFF062B42);
+  static const _cardColor = Color(0xFF0A3B5C);
+  static const _textColorSecondary = Colors.white70;
 
-  final Map<String, double> stats = {
-    "Polls": 60,
-    "Hackathons": 90,
-    "Attendance": 70,
-    "Conferences": 40,
-    "Bet on sports": 50,
+  bool _isEnglish = false;
+  late Future<Map<String, dynamic>> _profileData;
+  List<Map<String, dynamic>> _weeklyData = [];
+  final Map<String, String> _dayTranslations = {
+    "Monday": "Понедельник",
+    "Tuesday": "Вторник",
+    "Wednesday": "Среда",
+    "Thursday": "Четверг",
+    "Friday": "Пятница",
+    "Saturday": "Суббота",
+    "Sunday": "Воскресенье",
   };
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
-    _loadSurveyResults();
+    _profileData = _loadProfileData();
   }
 
-  Future<void> _loadUserData() async {
-    try {
-      final data = await ApiService.getCurrentUser();
-      setState(() {
-        userData = data;
-        isLoading = false;
-      });
+  void _toggleLanguage() {
+    setState(() {
+      _isEnglish = !_isEnglish;
+      _profileData = _loadProfileData();
+    });
+  }
+
+   Future<Map<String, dynamic>> _loadProfileData() async {
+     try {
+       final response = await ApiService.getProfile();
+       if (response['weekly_activity'] == null) {
+      response['weekly_activity'] = [];
+    }
+    
+    if (response['interests'] == null) {
+      response['interests'] = [];
+    }
+    
+    if (response['stats'] == null) {
+      response['stats'] = {
+        'polls': 0,
+        'hackathons': 0,
+        'attendance': 0,
+        'conferences': 0,
+        'bet': 0
+      };
+    }
+
+    _weeklyData = List<Map<String, dynamic>>.from(response['weekly_activity'] ?? []);
+    return response;
     } catch (e) {
-      setState(() {
-        errorMessage = 'Ошибка загрузки данных: $e';
-        isLoading = false;
-      });
+      debugPrint('Error loading profile: $e');
+      throw Exception('Error loading profile: ${e.toString()}');
     }
   }
 
-  Future<void> _loadSurveyResults() async {
-    try {
-      final results = await ApiService.getSurveyResults();
-      setState(() {
-        surveyResults = results;
-        isLoadingSurvey = false;
-      });
-    } catch (e) {
-      setState(() => isLoadingSurvey = false);
-    }
+  List<Map<String, String>> _buildUserInfo(Map<String, dynamic> data) {
+    return [
+      {"label": "Age", "value": "${data['age'] ?? 'N/A'} years"},
+      {"label": "Interests", "value": (data['interests'] ?? []).join(', ')},
+      {"label": "Status", "value": data['status'] ?? 'Unknown'},
+      {"label": "Email", "value": data['email'] ?? 'N/A'},
+    ];
   }
 
-  Future<void> _showLogoutDialog(BuildContext context) async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Подтверждение выхода'),
-          content: const Text('Вы уверены, что хотите выйти из профиля?'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Отмена'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Выйти', style: TextStyle(color: Colors.red)),
-              onPressed: () async {
-               try { 
-                await ApiService.logout();
-                Navigator.of(context).pop();
-                Navigator.of(context).pushReplacementNamed('/auth');
-               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Ошибка выхода: $e')),
-                );
-               }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Вы успешно вышли из профиля')),
-                );
-              },
-            ),
-          ],
-        );
-      },
-    );
+  Map<String, double> _buildStats(Map<String, dynamic> data) {
+    return {
+      "Polls": data['stats']['polls'].toDouble() ?? 0.0,
+      "Hackathons": data['stats']['hackathons'].toDouble() ?? 0.0,
+      "Attendance": data['stats']['attendance'].toDouble() ?? 0.0,
+      "Conferences": data['stats']['conferences'].toDouble() ?? 0.0,
+      "Bet on sports": data['stats']['bet'].toDouble() ?? 0.0,
+    };
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF062B42),
-        body: Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        ),
-      );
-    }
-
-    if (errorMessage.isNotEmpty) {
-      return Scaffold(
-        backgroundColor: const Color(0xFF062B42),
-        body: Center(
-          child: Text(
-            errorMessage,
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: const Color(0xFF062B42),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(context),
-            const SizedBox(height: 20),
-            _buildUserInfo(),
-            const SizedBox(height: 20),
-            _buildRadarChart(),
-            const SizedBox(height: 20),
-            _buildBarChart(),
-            const SizedBox(height: 20),
-            _buildSurveyResults(),
-          ],
-        ),
-      ),
-    );
+  List<Map<String, String>> _translateUserInfo(List<Map<String, String>> info) {
+    return info.map((item) {
+      return {
+        "label": _translateLabel(item["label"]!),
+        "value": item["value"]!,
+      };
+    }).toList();
   }
 
-  Widget _buildHeader(BuildContext context) {
+  String _translateLabel(String label) {
+    const translations = {
+      "Age": "Возраст",
+      "Interests": "Интересы",
+      "Status": "Статус",
+      "Email": "Электронная почта",
+    };
+    return translations[label] ?? label;
+  }
+
+  Widget _buildHeader(Map<String, dynamic> data) {
     return Row(
       children: [
-        const CircleAvatar(
-          radius: 30,
-          backgroundImage: AssetImage('assets/avatar.png'),
-        ),
+        AvatarWidget(imageUrl: data['avatar_url'], width: 40, height: 40, glowColor: Color.fromARGB(239, 255, 255, 255),),
         const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                userData?['username'] ?? 'Неизвестный пользователь',
-                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Roboto'),
-              ),
-              Text(
-                'Роль: ${userData?['role'] ?? 'student'}',
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.logout, color: Colors.white),
-          onPressed: () => _showLogoutDialog(context),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildUserInfo() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _InfoText('Возраст: ${userData?['age'] ?? 'не указан'}'),
-        _InfoText('Email: ${userData?['email'] ?? 'не указан'}'),
-        _InfoText('Телефон: ${userData?['phone'] ?? 'не указан'}'),
-        _InfoText('Дата регистрации: ${_formatDate(userData?['created_at'])}'),
-      ],
-    );
-  }
-
-  String _formatDate(String? dateString) {
-    if (dateString == null) return 'неизвестно';
-    try {
-      final date = DateTime.parse(dateString);
-      return '${date.day}.${date.month}.${date.year}';
-    } catch (e) {
-      return 'неизвестно';
-    }
-  }
-
-
-  Widget _buildRadarChart() {
-  List answers = surveyResults.isNotEmpty 
-      ? (surveyResults.first['answers'] as List<dynamic>)
-          .map((e) => e.toDouble())
-          .toList()
-      : [0.0, 0.0, 0.0]; 
-
-  return SizedBox(
-    height: 300,
-    child: RadarChart(
-      RadarChartData(
-        radarTouchData: RadarTouchData(enabled: false),
-        titlePositionPercentageOffset: 0.2,
-        radarShape: RadarShape.polygon,
-        tickCount: 5,
-        tickBorderData: const BorderSide(color: Colors.white24),
-        radarBorderData: const BorderSide(color: Colors.white),
-        radarBackgroundColor: Colors.transparent,
-        dataSets: [
-          RadarDataSet(
-            dataEntries: answers.map((e) => RadarEntry(value: e)).toList(),
-            fillColor: Colors.blue.withOpacity(0.3),
-            borderColor: Colors.blue,
-            borderWidth: 2,
-          ),
-        ],
-        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 12),
-      ),
-    ),
-  );
-}
-
-  Widget _buildSurveyResults() {
-  if (isLoadingSurvey) {
-    return const Center(child: CircularProgressIndicator());
-  }
-  
-  if (surveyResults.isEmpty) {
-    return const Center(
-      child: Text(
-        'Вы еще не проходили опросы',
-        style: TextStyle(color: Colors.white, fontSize: 16),
-      )
-    );
-  }
-
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Padding(
-        padding: EdgeInsets.only(bottom: 12),
-        child: Text(
-          'История опросов:',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      ...surveyResults.map((result) => Card(
-        color: Colors.white.withOpacity(0.1),
-        margin: const EdgeInsets.only(bottom: 10),
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 8,
-          ),
-          title: Text(
-            'Опрос от ${_formatDate(result['created_at'])}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-            ),
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 6),
-              Text(
-                'Ответы:',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                (result['answers'] as List<dynamic>)
-                    .map((a) => '• ${a.toString()}')
-                    .join('\n'),
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ),
-      )).toList(),
-    ],
-  );
-}
-
-  Widget _buildBarChart() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildBar(stats['Attendance'] ?? 0, const Color(0xFFB0F1FF)),
-            const SizedBox(width: 10),
-            _buildBar(stats['Hackathons'] ?? 0, const Color(0xFF90EE90)),
-            const SizedBox(width: 10),
-            _buildBar(stats['Polls'] ?? 0, const Color(0xFFB19CD9)),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Text("Attendance", style: TextStyle(color: Colors.white, fontSize: 14)),
-            SizedBox(width: 30),
-            Text("Hackathons", style: TextStyle(color: Colors.white, fontSize: 14)),
-            SizedBox(width: 30),
-            Text("Polls", style: TextStyle(color: Colors.white, fontSize: 14)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBar(double value, Color color) {
-    return Column(
-      children: [
-        Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            Container(
-              width: 20,
-              height: 100,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(5),
+            Text(
+              data['name'],
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            Container(
-              width: 20,
-              height: 100 * (value / 100),
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(5),
+            Text(
+              _isEnglish ? 'Community Member' : 'Участник сообщества',
+              style: TextStyle(
+                color: _glowColor.withOpacity(0.8),
+                fontSize: 16,
               ),
             ),
           ],
@@ -355,22 +141,131 @@ class _ProfilePageState extends State<ProfilePage> {
       ],
     );
   }
-}
-
-
-
-class _InfoText extends StatelessWidget {
-  final String text;
-  const _InfoText(this.text);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Text(
-        text,
-        style: const TextStyle(color: Colors.white70, fontSize: 14, fontFamily: 'Roboto'),
+    return Scaffold(
+      backgroundColor: _backgroundColor,
+      body: SafeArea(
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: _profileData,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return _buildLoading();
+            } else if (snapshot.hasError) {
+              return _buildError(snapshot.error.toString());
+            }
+            return _buildProfileContent(snapshot.data!);
+          },
+        ),
       ),
     );
+  }
+
+  Widget _buildProfileContent(Map<String, dynamic> data) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(data),
+          const SizedBox(height: 20),
+          UserInfoCardWidget(
+            userInfo: _isEnglish 
+                ? _buildUserInfo(data)
+                : _translateUserInfo(_buildUserInfo(data)),
+            textColorSecondary: _textColorSecondary,
+            cardColor: _cardColor,
+            isEnglish: _isEnglish,
+          ),
+          const SizedBox(height: 20),
+          _buildSectionTitle('Activity Statistics'),
+          RadarChartWidget(
+            stats: _buildStats(data),
+            glowColor: _glowColor,
+            tertiaryColor: _tertiaryColor,
+            cardColor: _cardColor,
+          ),
+          const SizedBox(height: 20),
+          _buildSectionTitle('Weekly Activity'),
+          WeeklyActivityWidget(
+            weeklyData: _weeklyData.map((data) {
+              return {
+                "day": _isEnglish ? data["day"] : _dayTranslations[data["day"]],
+                "attendance": data["attendance"],
+                "hackathons": data["hackathons"],
+                "polls": data["polls"],
+              };
+            }).toList(),
+            attendanceGradient: [
+              _glowColor.withOpacity(0.8),
+              _glowColor.withOpacity(0.3),
+            ],
+            hackathonsGradient: [
+              _secondaryColor.withOpacity(0.8),
+              _secondaryColor.withOpacity(0.3),
+            ],
+            pollsGradient: [
+              _tertiaryColor.withOpacity(0.8),
+              _tertiaryColor.withOpacity(0.3),
+            ],
+            cardColor: _cardColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoading() {
+    return Center(
+      child: CircularProgressIndicator(
+        valueColor: AlwaysStoppedAnimation(_glowColor),
+      ),
+    );
+  }
+
+  Widget _buildError(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Ошибка загрузки данных',
+            style: TextStyle(color: _glowColor, fontSize: 18),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: _tertiaryColor),
+            onPressed: () {
+              setState(() {
+                _profileData = _loadProfileData();
+              });
+            },
+            child: Text('Повторить', style: TextStyle(color: _glowColor)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return GestureDetector(
+      onTap: _toggleLanguage,
+      child: Text(
+        _isEnglish ? title : _getRussianTitle(title),
+        style: TextStyle(
+          color: _glowColor,
+          fontSize: _isEnglish ? 14 : 16,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  String _getRussianTitle(String englishTitle) {
+    const titles = {
+      'Activity Statistics': 'Статистика активности',
+      'Weekly Activity': 'Еженедельная активность',
+    };
+    return titles[englishTitle] ?? englishTitle;
   }
 }

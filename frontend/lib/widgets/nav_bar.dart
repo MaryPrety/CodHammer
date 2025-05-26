@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -16,6 +18,7 @@ class CustomNavBar extends StatelessWidget {
           _buildNavItem('assets/Quiz.svg'),
           _buildNavItem('assets/Bet.svg'),
           _buildNavItem('assets/Person.svg'),
+          _buildNavItem('assets/Exit.svg'),
         ],
       ),
     );

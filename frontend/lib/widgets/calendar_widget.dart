@@ -1,9 +1,13 @@
+// ignore_for_file: library_private_types_in_public_api, deprecated_member_use, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:translator/translator.dart';
+import 'package:intl/intl.dart'; // Для форматирования даты
+import 'package:url_launcher/url_launcher.dart';
 
 class CalendarWidget extends StatefulWidget {
-  const CalendarWidget({super.key});
+  const CalendarWidget({super.key, required String fontFamily});
 
   @override
   _CalendarWidgetState createState() => _CalendarWidgetState();
@@ -62,24 +66,24 @@ class _CalendarWidgetState extends State<CalendarWidget> {
               formatButtonVisible: false,
               titleCentered: true,
               titleTextStyle: const TextStyle(
-                fontFamily: 'StalinistOne',
+                fontFamily: 'Cornerita',
                 color: Color(0xFFD8CCFF),
-                fontSize: 14,
+                fontSize: 20,
               ),
               leftChevronIcon: const Icon(Icons.chevron_left, color: Colors.transparent),
               rightChevronIcon: const Icon(Icons.chevron_right, color: Colors.transparent),
               headerPadding: const EdgeInsets.symmetric(vertical: 6),
             ),
-            daysOfWeekStyle: const DaysOfWeekStyle(
-              weekdayStyle: TextStyle(
-                fontFamily: 'StalinistOne',
+            daysOfWeekStyle: DaysOfWeekStyle(
+              weekdayStyle: const TextStyle(
+                fontFamily: 'Cornerita',
                 color: Color(0xFFCDFBE4),
-                fontSize: 10,
+                fontSize: 14,
               ),
-              weekendStyle: TextStyle(
-                fontFamily: 'StalinistOne',
+              weekendStyle: const TextStyle(
+                fontFamily: 'Cornerita',
                 color: Color(0xFFCDFBE4),
-                fontSize: 10,
+                fontSize: 12,
               ),
             ),
             calendarStyle: CalendarStyle(
@@ -97,12 +101,12 @@ class _CalendarWidgetState extends State<CalendarWidget> {
               weekendTextStyle: const TextStyle(
                 color: Color(0xFFFAEFD9),
                 fontWeight: FontWeight.bold,
-                fontSize: 10,
+                fontSize: 12,
               ),
               defaultTextStyle: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 10,
+                fontSize: 12,
               ),
             ),
             calendarBuilders: CalendarBuilders(
@@ -112,9 +116,9 @@ class _CalendarWidgetState extends State<CalendarWidget> {
                   child: Text(
                     weekdays[day.weekday - 1],
                     style: const TextStyle(
-                      fontFamily: 'StalinistOne',
+                      fontFamily: 'Cornerita',
                       color: Color(0xFFCDFBE4),
-                      fontSize: 10,
+                      fontSize: 12,
                     ),
                   ),
                 );
@@ -145,33 +149,43 @@ class _DetailedDayPageState extends State<DetailedDayPage> {
     return translation.text;
   }
 
-  Widget _buildPastEventColumn() {
-    return Expanded(
+  Widget _buildEventColumn({
+    required String image,
+    required String description,
+    required String url,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => WebViewPage(url: url),
+          ),
+        );
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             width: 80,
             height: 80,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
-                  color: Color.fromRGBO(205, 251, 228, 0.32),
-                  offset: Offset(-11, 11),
+                  color: const Color.fromRGBO(205, 251, 228, 0.32),
+                  offset: const Offset(-11, 11),
                   blurRadius: 49,
                 ),
               ],
             ),
             child: Image.network(
-              'https://cdn.builder.io/api/v1/image/assets/360f9df7d3f54bedb1c96ecdb7a87f2d/cf91c52925fcbdaca5ba8be6e3420043a1c6b7b5?placeholderIfAbsent=true',
+              image,
               fit: BoxFit.contain,
             ),
           ),
           const SizedBox(height: 11),
           FutureBuilder<String>(
-            future: translateText(
-              'Хакатон\nПрошедшее событие: Идея от T1 Дата: 22 марта\nФормат: Оффлайн (в 7 городах России)\nУчастники: Студенты и начинающие специалисты в области разработки, анализа, тестирования и ИИ',
-            ),
+            future: translateText(description),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const CircularProgressIndicator();
@@ -192,15 +206,15 @@ class _DetailedDayPageState extends State<DetailedDayPage> {
                     textAlign: TextAlign.center,
                     text: TextSpan(
                       style: TextStyle(
-                        color: Color.fromRGBO(216, 204, 255, 1),
-                        fontSize: 14,
-                        fontFamily: 'Tomorrow',
-                        fontWeight: FontWeight.w600,
+                        color: const Color.fromRGBO(216, 204, 255, 1),
+                        fontSize: _isTranslated ? 14 : 16, 
+                        fontFamily: _isTranslated ? 'Tomorrow' : 'Cornerita',
+                        
                       ),
                       children: [
                         TextSpan(
-                          text: _isTranslated ? translatedText : 'Хакатон\nПрошедшее событие: Идея от T1 Дата: 22 марта\nФормат: Оффлайн (в 7 городах России)\nУчастники: Студенты и начинающие специалисты в области разработки, анализа, тестирования и ИИ',
-                          style: TextStyle(
+                          text: _isTranslated ? translatedText : description,
+                          style: const TextStyle(
                             color: Color.fromRGBO(250, 239, 217, 1),
                           ),
                         ),
@@ -209,110 +223,9 @@ class _DetailedDayPageState extends State<DetailedDayPage> {
                   ),
                 );
               } else {
-                return Text('Данные недоступны');
+                return const Text('Данные недоступны');
               }
             },
-          ),
-          const SizedBox(height: 38),
-          InkWell(
-            onTap: () {},
-            child: const Text(
-              'https://u.to/TuUyIg',
-              style: TextStyle(
-                color: Color.fromRGBO(205, 251, 228, 1),
-                fontSize: 12,
-                fontFamily: 'Tomorrow',
-                fontWeight: FontWeight.w600,
-                decoration: TextDecoration.underline,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUpcomingEventColumn() {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: const BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: Color.fromRGBO(216, 204, 255, 0.32),
-                  offset: Offset(-8, 8),
-                  blurRadius: 45,
-                ),
-              ],
-            ),
-            child: Image.network(
-              'https://cdn.builder.io/api/v1/image/assets/360f9df7d3f54bedb1c96ecdb7a87f2d/a4284e5498f7a281280bcd8fada141c9642d92f2?placeholderIfAbsent=true',
-              fit: BoxFit.contain,
-            ),
-          ),
-          const SizedBox(height: 11),
-          FutureBuilder<String>(
-            future: translateText(
-              'Хакатон\nПредстоящее событие: Конкурс Data Fusion 2025 Дата: 7 апреля\nФормат: Онлайн\nУчастники: Эксперты в области анализа данных и машинного обучения',
-            ),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const CircularProgressIndicator();
-              } else if (snapshot.hasError) {
-                return Text(
-                  'Ошибка перевода',
-                  style: TextStyle(color: Colors.red),
-                );
-              } else if (snapshot.hasData) {
-                final String translatedText = snapshot.data!;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _isTranslated = !_isTranslated;
-                    });
-                  },
-                  child: RichText(
-                    textAlign: TextAlign.center,
-                    text: TextSpan(
-                      style: TextStyle(
-                        color: Color.fromRGBO(205, 251, 228, 1),
-                        fontSize: 14,
-                        fontFamily: 'Tomorrow',
-                        fontWeight: FontWeight.w600,
-                      ),
-                      children: [
-                        TextSpan(
-                          text: _isTranslated ? translatedText : 'Хакатон\nПредстоящее событие: Конкурс Data Fusion 2025 Дата: 7 апреля\nФормат: Онлайн\nУчастники: Эксперты в области анализа данных и машинного обучения',
-                          style: TextStyle(
-                            color: Color.fromRGBO(216, 204, 255, 1),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              } else {
-                return Text('Данные недоступны');
-              }
-            },
-          ),
-          const SizedBox(height: 56),
-          InkWell(
-            onTap: () {},
-            child: const Text(
-              'https://u.to/l_UyIg',
-              style: TextStyle(
-                color: Color.fromRGBO(216, 204, 255, 1),
-                fontSize: 12,
-                fontFamily: 'Tomorrow',
-                fontWeight: FontWeight.w600,
-                decoration: TextDecoration.underline,
-              ),
-            ),
           ),
         ],
       ),
@@ -321,15 +234,17 @@ class _DetailedDayPageState extends State<DetailedDayPage> {
 
   @override
   Widget build(BuildContext context) {
+    final String formattedDate = DateFormat('d MMMM', 'ru_RU').format(widget.selectedDay);
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color.fromRGBO(6, 43, 66, 1), // Установлен правильный фон
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: const Color.fromRGBO(6, 43, 66, 1), // Согласован с общим фоном
         title: Text(
           'Детали ${widget.selectedDay.day}.${widget.selectedDay.month}.${widget.selectedDay.year}',
           style: const TextStyle(
             color: Color(0xFFD8CCFF),
-            fontFamily: 'StalinistOne',
+            fontFamily: 'Cornerita',
           ),
         ),
         leading: IconButton(
@@ -339,7 +254,7 @@ class _DetailedDayPageState extends State<DetailedDayPage> {
       ),
       body: SingleChildScrollView(
         child: Container(
-          color: const Color.fromRGBO(6, 43, 66, 1),
+          color: const Color.fromRGBO(6, 43, 66, 1), // Общий фон страницы
           width: double.infinity,
           child: Center(
             child: ConstrainedBox(
@@ -347,46 +262,28 @@ class _DetailedDayPageState extends State<DetailedDayPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 70),
-                  // CodHammer Title
+                  const SizedBox(height: 30),
+                 
                   Container(
-                    width: double.infinity,
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'CodHammer',
-                      style: TextStyle(
-                        color: Color.fromRGBO(205, 251, 228, 1),
-                        fontSize: 32,
-                        fontFamily: 'Stalinist One',
-                        fontWeight: FontWeight.w400,
-                        shadows: [
-                          Shadow(
-                            color: Color.fromRGBO(0, 27, 44, 0.45),
-                            offset: Offset(0, 4),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                      textAlign: TextAlign.center,
+                    margin: const EdgeInsets.only(top: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color.fromRGBO(6, 43, 66, 1), // Согласован с общим фоном
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ),
-                  // Date
-                  Container(
-                    margin: const EdgeInsets.only(top: 20),
-                    child: const Text(
-                      '24 марта',
-                      style: TextStyle(
+                    child: Text(
+                      formattedDate,
+                      style: const TextStyle(
                         color: Color.fromRGBO(216, 204, 255, 1),
                         fontFamily: 'Tomorrow',
                         fontSize: 20,
-                        fontWeight: FontWeight.w600,
+                        
                       ),
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  // Description
                   Container(
-                    margin: const EdgeInsets.only(top: 38),
+                    margin: const EdgeInsets.only(top: 20),
                     child: FutureBuilder<String>(
                       future: translateText(
                         'Пока нет событий, но мы можем предоставить информацию о том, чего ожидать или что уже произошло.',
@@ -408,133 +305,95 @@ class _DetailedDayPageState extends State<DetailedDayPage> {
                               });
                             },
                             child: Text(
-                              _isTranslated ? translatedText : 'Пока нет событий, но мы можем предоставить информацию о том, чего ожидать или что уже произошло.',
+                              _isTranslated
+                                  ? translatedText
+                                  : 'Пока нет событий, но мы можем предоставить информацию о том, чего ожидать или что уже произошло.',
                               style: TextStyle(
-                                color: Color.fromRGBO(205, 251, 228, 1),
-                                fontSize: 16,
-                                fontFamily: 'Tomorrow',
-                                fontWeight: FontWeight.w600,
+                                color: const Color.fromRGBO(205, 251, 228, 1),
+                                fontSize: _isTranslated ? 14 : 16, 
+                                fontFamily: _isTranslated ? 'Tomorrow' : 'Cornerita',
+                                
                               ),
                               textAlign: TextAlign.center,
                             ),
                           );
                         } else {
-                          return Text('Данные недоступны');
+                          return const Text('Данные недоступны');
                         }
                       },
                     ),
                   ),
-                  // Two columns section
                   Container(
-                    margin: const EdgeInsets.only(top: 32),
+                    margin: const EdgeInsets.only(top: 20),
                     width: double.infinity,
                     constraints: const BoxConstraints(maxWidth: 406),
-                    child: Row(
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildPastEventColumn(),
-                        const SizedBox(width: 20),
-                        _buildUpcomingEventColumn(),
-                      ],
-                    ),
-                  ),
-                  // Poll section
-                  Container(
-                    margin: const EdgeInsets.only(top: 29),
-                    width: double.infinity,
-                    constraints: const BoxConstraints(maxWidth: 352),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Image.network(
-                          'https://cdn.builder.io/api/v1/image/assets/360f9df7d3f54bedb1c96ecdb7a87f2d/f8a4d7be307a89c9efda7aac2e64c201d226206e?placeholderIfAbsent=true',
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(height: 10),
-                        FutureBuilder<String>(
-                          future: translateText('Опрос: Будете ли вы участвовать в конкурсе Data Fusion 2025?'),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return const CircularProgressIndicator();
-                            } else if (snapshot.hasError) {
-                              return Text(
-                                'Ошибка перевода',
-                                style: TextStyle(color: Colors.red),
-                              );
-                            } else if (snapshot.hasData) {
-                              final String translatedText = snapshot.data!;
-                              return GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _isTranslated = !_isTranslated;
-                                  });
-                                },
-                                child: Text(
-                                  _isTranslated ? translatedText : 'Опрос: Будете ли вы участвовать в конкурсе Data Fusion 2025?',
-                                  style: TextStyle(
-                                    color: Color.fromRGBO(216, 204, 255, 1),
-                                    fontSize: 17,
-                                    fontFamily: 'Tomorrow',
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              );
-                            } else {
-                              return Text('Данные недоступны');
-                            }
-                          },
+                        _buildEventColumn(
+                          image:
+                              'https://cdn.builder.io/api/v1/image/assets/360f9df7d3f54bedb1c96ecdb7a87f2d/cf91c52925fcbdaca5ba8be6e3420043a1c6b7b5?placeholderIfAbsent=true',
+                          description:
+                              'Хакатон\nПрошедшее событие: Идея от T1 Дата: 22 марта\nФормат: Оффлайн (в 7 городах России)\nУчастники: Студенты и начинающие специалисты в области разработки, анализа, тестирования и ИИ',
+                          url: 'https://u.to/TuUyIg',
                         ),
                         const SizedBox(height: 20),
-                        ListView(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          children: [
-                            RadioListTile<String>(
-                              title: const Text('Боевой робот с подсветкой и звуковыми эффектами'),
-                              value: 'option1',
-                              groupValue: null,
-                              onChanged: (value) {},
-                            ),
-                            RadioListTile<String>(
-                              title: const Text('Футболка или худи с уникальным дизайном'),
-                              value: 'option2',
-                              groupValue: null,
-                              onChanged: (value) {},
-                            ),
-                            RadioListTile<String>(
-                              title: const Text('Интерактивный набор для создания мини-робота'),
-                              value: 'option3',
-                              groupValue: null,
-                              onChanged: (value) {},
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            side: const BorderSide(color: Colors.white),
-                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                          ),
-                          child: const Text(
-                            'Сохранить',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                        _buildEventColumn(
+                          image:
+                              'https://cdn.builder.io/api/v1/image/assets/360f9df7d3f54bedb1c96ecdb7a87f2d/a4284e5498f7a281280bcd8fada141c9642d92f2?placeholderIfAbsent=true',
+                          description:
+                              'Хакатон\nПредстоящее событие: Конкурс Data Fusion 2025 Дата: 7 апреля\nФормат: Онлайн\nУчастники: Эксперты в области анализа данных и машинного обучения',
+                          url: 'https://u.to/l_UyIg',
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(height: 50), // Добавлен дополнительный отступ внизу
                 ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class WebViewPage extends StatelessWidget {
+  final String url;
+
+  const WebViewPage({super.key, required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color.fromRGBO(6, 43, 66, 1), // Согласован с общим фоном
+        title: const Text(
+          'Ссылка',
+          style: TextStyle(
+            color: Color(0xFFD8CCFF),
+            fontFamily: 'Cornerita',
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFFD8CCFF)),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () async {
+            final Uri uri = Uri.parse(url);
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Не удалось открыть ссылку')),
+              );
+            }
+          },
+          child: const Text('Перейти по ссылке'),
         ),
       ),
     );

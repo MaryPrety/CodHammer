@@ -1,3 +1,5 @@
+// ignore_for_file: library_private_types_in_public_api, deprecated_member_use
+
 import 'package:flutter/material.dart';
 
 class BettingWidget extends StatefulWidget {
@@ -14,7 +16,7 @@ class BettingWidget extends StatefulWidget {
   final VoidCallback onSecondTeamImageTap;
 
   const BettingWidget({
-    Key? key,
+    super.key,
     required this.firstRobotPercentage,
     required this.secondRobotPercentage,
     required this.firstRobotCoefficient,
@@ -26,7 +28,7 @@ class BettingWidget extends StatefulWidget {
     required this.onSecondTeamImageTap,
     required this.firstTeamName,
     required this.secondTeamName,
-  }) : super(key: key);
+  });
 
   @override
   _BettingWidgetState createState() => _BettingWidgetState();
@@ -61,123 +63,139 @@ class _BettingWidgetState extends State<BettingWidget> {
   }
 
   Widget _buildButtonsRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GestureDetector(
-              onTap: widget.onFirstTeamImageTap,
-              child: _buildIconOrImage(_getTeamColor(true), 'assets/weber.png'),
-            ),
-            const SizedBox(width: 26),
-            _buildButton(
-              text: widget.firstRobotCoefficient.toStringAsFixed(2),
-              color: _getTeamColor(true),
-              onTap: widget.onFirstRobotTap,
-            ),
-          ],
-        ),
-        _buildTimeButton(widget.matchTime), // Передаем только время матча
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildButton(
-              text: widget.secondRobotCoefficient.toStringAsFixed(2),
-              color: _getTeamColor(false),
-              onTap: widget.onSecondRobotTap,
-            ),
-            const SizedBox(width: 26),
-            GestureDetector(
-              onTap: widget.onSecondTeamImageTap,
-              child: _buildIconOrImage(_getTeamColor(false), 'assets/au.jpg'),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final buttonWidth = constraints.maxWidth / 4.5;
+      final timeButtonWidth = constraints.maxWidth / 4;
+      
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: widget.onFirstTeamImageTap,
+                child: _buildIconOrImage(_getTeamColor(true), 'assets/weber.png'),
+              ),
+              const SizedBox(width: 8), // Уменьшаем отступ
+              _buildButton(
+                width: buttonWidth,
+                text: widget.firstRobotCoefficient.toStringAsFixed(2),
+                color: _getTeamColor(true),
+                onTap: widget.onFirstRobotTap,
+              ),
+            ],
+          ),
+          _buildTimeButton(widget.matchTime, width: timeButtonWidth),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildButton(
+                width: buttonWidth,
+                text: widget.secondRobotCoefficient.toStringAsFixed(2),
+                color: _getTeamColor(false),
+                onTap: widget.onSecondRobotTap,
+              ),
+              const SizedBox(width: 8), // Уменьшаем отступ
+              GestureDetector(
+                onTap: widget.onSecondTeamImageTap,
+                child: _buildIconOrImage(_getTeamColor(false), 'assets/au.jpg'),
+              ),
+            ],
+          ),
+        ],
+      );
+    },
+  );
+}
 
   Widget _buildButton({
-    required String text,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 80,
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.7), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.7),
-              blurRadius: 15,
-              spreadRadius: 3,
-            ),
-          ],
-        ),
-        child: Center(
+  required String text,
+  required Color color,
+  required VoidCallback onTap,
+  double? width,
+}) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      width: width ?? 80, // Используем переданную ширину или значение по умолчанию
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4), // Уменьшаем горизонтальный padding
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(0.7), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.3),
+            blurRadius: 6,
+            spreadRadius: 3,
+          ),
+        ],
+      ),
+      child: Center(
+        child: FittedBox( // Добавляем FittedBox для автоматического масштабирования текста
+          fit: BoxFit.scaleDown,
           child: Text(
             text,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: const Color.fromRGBO(69, 105, 109, 0.867),
-              fontFamily: 'Cornerita', // Используем пользовательский шрифт
+              fontFamily: 'Cornerita',
             ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _buildTimeButton(String time) {
-    return Container(
-      width: 90,
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFD8CCFF),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFD8CCFF).withOpacity(0.7), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFD8CCFF).withOpacity(0.7),
-            blurRadius: 15,
-            spreadRadius: 3,
-          ),
-        ],
-      ),
-      child: Center(
+  Widget _buildTimeButton(String time, {double? width}) {
+  return Container(
+    width: width ?? 90, 
+    padding: const EdgeInsets.symmetric(vertical: 10),
+    decoration: BoxDecoration(
+      color: const Color(0xFFD8CCFF),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0xFFD8CCFF).withOpacity(0.7), width: 1.5),
+      boxShadow: [
+        BoxShadow(
+          color: const Color(0xFFD8CCFF).withOpacity(0.3),
+          blurRadius: 6,
+          spreadRadius: 3,
+        ),
+      ],
+    ),
+    child: Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
         child: Text(
-          time, // Отображаем только время матча
+          time,
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
             color: const Color.fromRGBO(69, 105, 109, 0.867),
-            fontFamily: 'Cornerita', // Используем пользовательский шрифт
+            fontFamily: 'Cornerita',
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildIconOrImage(Color color, String imagePath) {
     return Container(
-      width: 50,
-      height: 50,
+      width: 25,
+      height: 25,
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.7), width: 2),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.7),
-            blurRadius: 10,
+            color: color.withOpacity(0.3),
+            blurRadius: 6,
             spreadRadius: 2,
           ),
         ],
@@ -209,9 +227,9 @@ class _BettingWidgetState extends State<BettingWidget> {
             color: oppositeColor, // Цвет фона теперь соответствует НЕ доминирующей команде
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFFCDFBE4).withOpacity(0.5),
-                blurRadius: 15,
-                spreadRadius: 5,
+                color: const Color(0xFFCDFBE4).withOpacity(0.3),
+                blurRadius: 6,
+                spreadRadius: 2,
               ),
             ],
           ),

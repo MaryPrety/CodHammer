@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String _baseUrl = 'http://89.111.173.26:8080'; 
+  static const String _baseUrl = 'http://localhost:8080'; 
 
   // Общий метод для запросов
   static Future<dynamic> _makeRequest(

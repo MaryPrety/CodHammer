@@ -8,6 +8,7 @@ import 'pages/shop_page.dart';
 import 'pages/story_page.dart';
 import 'services/api_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:cod_hammer/widgets/app_bar.dart';
 
@@ -49,6 +50,16 @@ class _MyAppState extends State<MyApp> {
         primarySwatch: Colors.blue,
         fontFamily: 'Tomorrow',
       ),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ru', 'RU'),
+        Locale('en', 'US'),
+      ],
+      locale: const Locale('ru', 'RU'),
       routes: {
         '/main': (context) => _isAuthenticated 
             ? MainNavigation(
@@ -84,7 +95,7 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
   int _shopIndex = 0;
-  final int _gemCount = 6500;
+  final int _gemCount = 0;
 
   final List<Widget> _pages = [
     const CalendarPage(),
@@ -104,7 +115,7 @@ class _MainNavigationState extends State<MainNavigation> {
       appBar: CustomAppBar(
         title: 'CodHammer',
         isProfilePage: _currentIndex == 3,
-        gemCount: _currentIndex == 3 ? _gemCount : null,
+        points: _currentIndex == 3 ? _gemCount : null,
         onTitleTap: () {
           setState(() {
             _currentIndex = 4;

@@ -4,7 +4,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool isProfilePage;
   final int? screwCount;
-  final int? gemCount;
+  final int? points;
   final VoidCallback? onTitleTap; // Новый параметр для обработки нажатия
 
   const CustomAppBar({
@@ -12,7 +12,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.isProfilePage = false,
     this.screwCount,
-    this.gemCount,
+    this.points,
     this.onTitleTap, // Добавляем возможность передать колбэк
   });
 
@@ -21,7 +21,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: GestureDetector(
         onTap: onTitleTap, // Обрабатываем нажатие на заголовок
-        child: isProfilePage && (screwCount != null || gemCount != null)
+        child: isProfilePage && (screwCount != null || points != null)
             ? Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -50,7 +50,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                     ),
                   ],
-                  if (gemCount != null) ...[
+                  if (points != null) ...[
                     const SizedBox(width: 8),
                     Image.asset(
                       'assets/screw.png',
@@ -59,7 +59,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      _formatCount(gemCount!),
+                      _formatCount(points!),
                       style: const TextStyle(
                         fontFamily: 'StalinistOne',
                         color: Color(0xFFB19CD9),

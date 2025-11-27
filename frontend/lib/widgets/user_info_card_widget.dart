@@ -8,6 +8,7 @@ class UserInfoCardWidget extends StatelessWidget {
   final Color textColorSecondary; // Цвет вторичного текста
   final Color cardColor; // Цвет фона карточки
   final bool isEnglish; // Флаг для определения языка
+  final int points;
 
   const UserInfoCardWidget({
     super.key,
@@ -15,6 +16,7 @@ class UserInfoCardWidget extends StatelessWidget {
     required this.textColorSecondary,
     required this.cardColor,
     required this.isEnglish, // Добавлен флаг для языка
+    required this.points,
   });
 
   @override

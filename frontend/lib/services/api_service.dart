@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String _baseUrl = 'http://localhost:8080'; 
+  static const String _baseUrl = 'http://10.0.2.2:8080'; 
 
   // Общий метод для запросов
   static Future<dynamic> _makeRequest(
@@ -12,8 +12,11 @@ class ApiService {
     dynamic body,
   ) async {
     final url = Uri.parse('$_baseUrl$endpoint');
-    final headers = {'Content-Type': 'application/json'};
-    
+    final headers = {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Accept': 'application/json'
+    };  
+  
     // Добавляем токен
     final token = await getToken();
     if (token != null) {
@@ -113,4 +116,29 @@ class ApiService {
     return response;
   }
 
+  // Обновление профиля
+  static Future<Map<String, dynamic>> updateProfile({
+    required String name,
+    required String email,
+    required int age,
+    required String status,
+    required List<String> interests,
+  }) async {
+    try {
+      final response = await _makeRequest(
+        'POST',
+        '/profile-update',
+        {
+          'username': name,
+          'email': email,
+          'age': age,
+          'status': status,
+          'interests': interests,
+        },
+      );
+      return response;
+    } catch (e) {
+      throw Exception('Failed to update profile: $e');
+    }
+  }
 }

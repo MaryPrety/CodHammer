@@ -1,3 +1,4 @@
+import 'package:cod_hammer/pages/edit_profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cod_hammer/widgets/user_info_card_widget.dart';
 import 'package:cod_hammer/widgets/radar_chart_widget.dart';
@@ -77,9 +78,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
   List<Map<String, String>> _buildUserInfo(Map<String, dynamic> data) {
     return [
-      {"label": "Age", "value": "${data['age'] ?? 'N/A'} years"},
+      {"label": "Age", "value": "${data['age'] ?? 'N/A'} ${_isEnglish ? 'years' : 'лет'}"},
       {"label": "Interests", "value": (data['interests'] ?? []).join(', ')},
-      {"label": "Status", "value": data['status'] ?? 'Unknown'},
+      {"label": "Status", "value": data['status'] ?? (_isEnglish ? 'Unknown' : 'Неизвестно')},
       {"label": "Email", "value": data['email'] ?? 'N/A'},
     ];
   }
@@ -122,7 +123,7 @@ class _ProfilePageState extends State<ProfilePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              data['name'],
+              data['name'] ?? (_isEnglish ? 'No name' : 'Без имени'),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
@@ -138,6 +139,24 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ],
         ),
+        IconButton(
+          icon: Icon(Icons.edit, color: _glowColor),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EditProfilePage(
+                  profileData: data,
+                  onProfileUpdated: () {
+                    setState(() {
+                      _profileData = _loadProfileData();
+                      });
+                    },
+                  ),
+              ),
+            );
+          },
+        )
       ],
     );
   }
@@ -177,6 +196,7 @@ class _ProfilePageState extends State<ProfilePage> {
             textColorSecondary: _textColorSecondary,
             cardColor: _cardColor,
             isEnglish: _isEnglish,
+            points: data['points'] ?? 0,
           ),
           const SizedBox(height: 20),
           _buildSectionTitle('Activity Statistics'),

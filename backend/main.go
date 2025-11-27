@@ -26,15 +26,22 @@ const MaxSessionsPerUser = 5
 
 // User структура для хранения данных пользователя
 type User struct {
-	ID        int    `json:"id"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
-	Password  string `json:"password"`
-	Role      string `json:"role"`
-	Age       int    `json:"age"`
-	Phone     string `json:"phone"`
-	Points    int    `json:"points"`
-	CreatedAt string `json:"created_at"`
+	ID             int    `json:"id"`
+	FirstName      string `json:"first_name"`
+	LastName       string `json:"last_name"`
+	Username       string `json:"username"`
+	Email          string `json:"email"`
+	Password       string `json:"password"`
+	StudyGroup     string `json:"study_group"`
+	EnrollmentYear int    `json:"enrollment_year"`
+	Semester       int    `json:"semester"`
+	Course         int    `json:"course"`
+	Role           string `json:"role"`
+	Age            int    `json:"age"`
+	Phone          string `json:"phone"`
+	Points         int    `json:"points"`
+	Status         string `json:"status"`
+	CreatedAt      string `json:"created_at"`
 }
 
 // AuthResponse структура для ответа при авторизации
@@ -49,6 +56,23 @@ type Claims struct {
 	Username string `json:"username"`
 	Role     string `json:"role"`
 	jwt.StandardClaims
+}
+
+type Survey struct {
+	ID          int        `json:"id"`
+	Title       string     `json:"title"`
+	Description string     `json:"description"`
+	Questions   []Question `json:"questions"`
+	CreatedBy   int        `json:"created_by"`
+	CreatedAt   time.Time  `json:"created_at"`
+	IsActive    bool       `json:"is_active"`
+}
+
+type Question struct {
+	ID      int      `json:"id"`
+	Text    string   `json:"text"`
+	Type    string   `json:"type"`
+	Options []string `json:"options,omitempty"`
 }
 
 // Структура для хранения ответов
@@ -90,6 +114,7 @@ func main() {
 	// Настройка маршрутов
 	router := mux.NewRouter()
 	router.Use(enableCORS)
+	router.Use(utf8Middleware)
 
 	// Маршруты регистрации и авторизации
 	router.HandleFunc("/register", registerHandler).Methods("POST", "OPTIONS")
@@ -109,10 +134,12 @@ func main() {
 	router.Handle("/users", jwtMiddleware(http.HandlerFunc(getUsersHandler))).Methods("GET", "OPTIONS")
 	router.Handle("/current-user", jwtMiddleware(http.HandlerFunc(getCurrentUserHandler))).Methods("GET", "OPTIONS")
 	router.Handle("/profile", jwtMiddleware(http.HandlerFunc(getProfileHandler))).Methods("GET", "OPTIONS")
+	router.Handle("/profile-update", jwtMiddleware(http.HandlerFunc(updateProfileHandler))).Methods("POST", "OPTIONS")
 
 	// Маршруты получения/хранения опросника
-	router.Handle("/save-responses", jwtMiddleware(http.HandlerFunc(saveResponsesHandler))).Methods("POST", "OPTIONS")
-	router.Handle("/get-responses", jwtMiddleware(http.HandlerFunc(getResponsesHandler))).Methods("GET", "OPTIONS")
+	router.Handle("/surveys", jwtMiddleware(http.HandlerFunc(getSurveysHandler))).Methods("GET", "OPTIONS")
+	router.Handle("/createsurvey", jwtMiddleware(adminMiddleware(http.HandlerFunc(createSurveyHandler)))).Methods("POST", "OPTIONS")
+	router.Handle("/submitsurvey", jwtMiddleware(http.HandlerFunc(submitSurveyHandler))).Methods("POST", "OPTIONS")
 
 	// Маршруты управления событиями
 	router.Handle("/events", jwtMiddleware(http.HandlerFunc(getEventsHandler))).Methods("GET", "OPTIONS")
@@ -126,7 +153,7 @@ func main() {
 	router.Handle("/products/{id}", jwtMiddleware(adminMiddleware(http.HandlerFunc(updateProductHandler)))).Methods("PUT", "OPTIONS")
 	router.Handle("/products/{id}", jwtMiddleware(adminMiddleware(http.HandlerFunc(deleteProductHandler)))).Methods("DELETE", "OPTIONS")
 
-	// Маршрут для добавления баллов
+	// Маршрут для добавления баллов за опросы
 	router.Handle("/set-survey-points", jwtMiddleware(adminMiddleware(http.HandlerFunc(setSurveyPointsHandler)))).Methods("POST", "OPTIONS")
 
 	// Запуск сервера
@@ -166,7 +193,7 @@ func initDB() {
 	dbname := os.Getenv("DB_NAME")
 
 	// Подключение к PostgreSQL
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable client_encoding='UTF8'",
 		host, port, user, password, dbname)
 
 	// Проверка подключения
@@ -190,11 +217,16 @@ func initDB() {
 	createTableSQL := `
 	CREATE TABLE IF NOT EXISTS users (
 		id SERIAL PRIMARY KEY,
+		first_name TEXT,
+		last_name TEXT,
 		username TEXT NOT NULL UNIQUE,
+		study_group TEXT,
+		enrollment_year INTEGER,
 		email TEXT NOT NULL UNIQUE,
 		password TEXT NOT NULL,
 		role TEXT NOT NULL DEFAULT 'student',
 		age INTEGER,
+		status TEXT NOT NULL DEFAULT 'Active',
 		phone TEXT,
 		points INTEGER NOT NULL DEFAULT 0,
 		created_at TIMESTAMP NOT NULL
@@ -253,6 +285,22 @@ func initDB() {
 		log.Fatal(err)
 	}
 
+	createSurveysTableSQL := `
+	CREATE TABLE IF NOT EXISTS surveys (
+		id SERIAL PRIMARY KEY,
+		title TEXT NOT NULL,
+		description TEXT,
+		questions JSONB NOT NULL,
+		created_by INTEGER REFERENCES users(id),
+		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+		is_active BOOLEAN DEFAULT true
+	);`
+
+	_, err = db.Exec(createSurveysTableSQL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Таблица для хранения баллов
 	createSurveyPointsTableSQL := `
 	CREATE TABLE IF NOT EXISTS survey_points (
@@ -270,11 +318,10 @@ func initDB() {
 	// Таблица для хранения интересов пользователей
 	createUserInterestsTableSQL := `
 	CREATE TABLE IF NOT EXISTS user_interests (
-		user_id INTEGER REFERENCES users(id),
-		interest TEXT NOT NULL,
-		PRIMARY KEY (user_id, interest)
-	);
-	`
+    user_id INTEGER PRIMARY KEY REFERENCES users(id),
+    interests JSONB NOT NULL DEFAULT '[]'::jsonb
+	);`
+
 	_, err = db.Exec(createUserInterestsTableSQL)
 	if err != nil {
 		log.Fatal(err)
@@ -315,32 +362,32 @@ func initDB() {
 	}
 
 	fmt.Println("Successfully connected to PostgreSQL")
-	router := mux.NewRouter()
-	router.Use(enableCORS)
 }
 
 // Блок: Регистрация и авторизация/Присвоение JWT-токена
 // Функция Регистрации
 func registerHandler(w http.ResponseWriter, r *http.Request) {
-	var user User
+	var user struct {
+		Username       string `json:"username"`
+		Email          string `json:"email"`
+		Password       string `json:"password"`
+		FirstName      string `json:"first_name"`
+		LastName       string `json:"last_name"`
+		StudyGroup     string `json:"study_group"`
+		EnrollmentYear int    `json:"enrollment_year"`
+		Age            int    `json:"age"`
+		Phone          string `json:"phone"`
+	}
+
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Проверка, что все обязательные поля заполнены
+	// Проверка обязательных полей
 	if user.Username == "" || user.Email == "" || user.Password == "" {
 		http.Error(w, "Username, email and password are required", http.StatusBadRequest)
-		return
-	}
-
-	// Установка роли по умолчанию
-	user.Role = "student"
-
-	// Проверка возраста (опционально)
-	if user.Age < 0 {
-		http.Error(w, "Age cannot be negative", http.StatusBadRequest)
 		return
 	}
 
@@ -351,38 +398,52 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user.CreatedAt = time.Now().Format(time.RFC3339)
-	user.Password = string(hashedPassword)
+	createdAt := time.Now().Format(time.RFC3339)
 
-	// Вставка пользователя в базу данных и получение ID
+	// Вставка пользователя в базу данных
+	var userID int
+	var points int
 	err = db.QueryRow(
-		"INSERT INTO users (username, email, password, role, age, phone, points, created_at) VALUES ($1, $2, $3, $4, $5, $6, 0, $7) RETURNING id, points",
-		user.Username, user.Email, user.Password, user.Role, user.Age, user.Phone, user.CreatedAt,
-	).Scan(&user.ID, &user.Points)
+		`INSERT INTO users (username, email, password, first_name, last_name, study_group, enrollment_year, age, phone, created_at) 
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+		 RETURNING id, points`,
+		user.Username, user.Email, string(hashedPassword), user.FirstName, user.LastName,
+		user.StudyGroup, user.EnrollmentYear, user.Age, user.Phone, createdAt,
+	).Scan(&userID, &points)
 
 	if err != nil {
-		// Проверка на дубликат username или email, а также phone
-		if err.Error() == "pq: duplicate key value violates unique constraint \"users_username_key\"" {
-			http.Error(w, "Username already exists", http.StatusConflict)
-			return
-		}
-		if err.Error() == "pq: duplicate key value violates unique constraint \"users_email_key\"" {
-			http.Error(w, "Email already exists", http.StatusConflict)
-			return
-		}
-		if err.Error() == "pq: duplicate key value violates unique constraint \"users_phone_key\"" {
-			http.Error(w, "Phone already exists", http.StatusConflict)
-			return
+		// Проверка на дубликат
+		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+			if strings.Contains(err.Error(), "users_username_key") {
+				http.Error(w, "Username already exists", http.StatusConflict)
+				return
+			}
+			if strings.Contains(err.Error(), "users_email_key") {
+				http.Error(w, "Email already exists", http.StatusConflict)
+				return
+			}
+			if strings.Contains(err.Error(), "users_phone_key") {
+				http.Error(w, "Phone already exists", http.StatusConflict)
+				return
+			}
 		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Убираем пароль из ответа
-	user.Password = ""
+	response := map[string]interface{}{
+		"id":          userID,
+		"username":    user.Username,
+		"email":       user.Email,
+		"first_name":  user.FirstName,
+		"last_name":   user.LastName,
+		"study_group": user.StudyGroup,
+		"points":      points,
+		"message":     "User registered successfully",
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(response)
 }
 
 // Функция авторизации
@@ -401,9 +462,13 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	// Поиск пользователя в базе данных
 	var user User
 	err = db.QueryRow(
-		"SELECT id, username, email, password, role, age, phone, created_at FROM users WHERE phone = $1 OR email = $1",
+		`SELECT id, username, email, password, role, age, phone, first_name, last_name, 
+		 study_group, enrollment_year, points, created_at 
+		 FROM users WHERE phone = $1 OR email = $1`,
 		creds.EmailOrPhone,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.Age, &user.Phone, &user.CreatedAt)
+	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Role, &user.Age,
+		&user.Phone, &user.FirstName, &user.LastName, &user.StudyGroup, &user.EnrollmentYear,
+		&user.Points, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "User not found", http.StatusUnauthorized)
@@ -439,6 +504,11 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Убираем пароль из ответа
 	user.Password = ""
+
+	// Вычисляем курс и семестр
+	if user.EnrollmentYear > 0 {
+		user.Course, user.Semester = getCurrentSemester(user.EnrollmentYear)
+	}
 
 	// Формирование ответа
 	response := AuthResponse{
@@ -480,6 +550,13 @@ func jwtMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func utf8Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		next.ServeHTTP(w, r)
+	})
+}
+
 // Middleware для проверки прав администратора
 func adminMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -505,7 +582,8 @@ func adminMiddleware(next http.Handler) http.Handler {
 // Блок: Обработчик пользователей
 // Получение всех пользователей
 func getUsersHandler(w http.ResponseWriter, r *http.Request) {
-	rows, err := db.Query("SELECT id, username, email, role, age, phone, created_at FROM users")
+	rows, err := db.Query(`SELECT id, username, email, role, age, phone, first_name, last_name, 
+		study_group, enrollment_year, points, created_at FROM users`)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -515,10 +593,16 @@ func getUsersHandler(w http.ResponseWriter, r *http.Request) {
 	var users []User
 	for rows.Next() {
 		var user User
-		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.Age, &user.Phone, &user.CreatedAt)
+		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.Age,
+			&user.Phone, &user.FirstName, &user.LastName, &user.StudyGroup,
+			&user.EnrollmentYear, &user.Points, &user.CreatedAt)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+		// Вычисляем курс и семестр
+		if user.EnrollmentYear > 0 {
+			user.Course, user.Semester = getCurrentSemester(user.EnrollmentYear)
 		}
 		users = append(users, user)
 	}
@@ -561,13 +645,22 @@ func getCurrentUserHandler(w http.ResponseWriter, r *http.Request) {
 	// Поиск пользователя в БД
 	var user User
 	err = db.QueryRow(
-		"SELECT id, username, email, role, age, phone, created_at FROM users WHERE id = $1",
+		`SELECT id, username, email, role, age, phone, first_name, last_name, 
+		 study_group, enrollment_year, points, created_at 
+		 FROM users WHERE id = $1`,
 		claims.UserID,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.Age, &user.Phone, &user.CreatedAt)
+	).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.Age,
+		&user.Phone, &user.FirstName, &user.LastName, &user.StudyGroup,
+		&user.EnrollmentYear, &user.Points, &user.CreatedAt)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Вычисляем курс и семестр
+	if user.EnrollmentYear > 0 {
+		user.Course, user.Semester = getCurrentSemester(user.EnrollmentYear)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -584,35 +677,39 @@ func getProfileHandler(w http.ResponseWriter, r *http.Request) {
 
 	var user User
 	err := db.QueryRow(`
-        SELECT id, username, email, age, phone, points, created_at 
+        SELECT id, username, email, age, phone, points, created_at, 
+		first_name, last_name, study_group, enrollment_year
         FROM users 
         WHERE id = $1
     `, claims.UserID).Scan(
 		&user.ID, &user.Username, &user.Email,
 		&user.Age, &user.Phone, &user.Points, &user.CreatedAt,
+		&user.FirstName, &user.LastName, &user.StudyGroup, &user.EnrollmentYear,
 	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	rows, err := db.Query("SELECT interest FROM user_interests WHERE user_id = $1", claims.UserID)
-	if err != nil {
+	// Вычисляем курс и семестр
+	if user.EnrollmentYear > 0 {
+		user.Course, user.Semester = getCurrentSemester(user.EnrollmentYear)
+	}
+
+	// Получаем интересы в формате JSON
+	var interestsJSON []byte
+	var interests []string
+	err = db.QueryRow("SELECT interests FROM user_interests WHERE user_id = $1", claims.UserID).Scan(&interestsJSON)
+	if err == nil {
+		json.Unmarshal(interestsJSON, &interests)
+	} else if err == sql.ErrNoRows {
+		interests = []string{}
+	} else {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
 
-	var interests []string
-	for rows.Next() {
-		var interest string
-		if err := rows.Scan(&interest); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		interests = append(interests, interest)
-	}
-
+	// Получаем статистику пользователя
 	var stats struct {
 		Polls       int     `json:"polls"`
 		Hackathons  int     `json:"hackathons"`
@@ -633,7 +730,8 @@ func getProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err = db.Query(`
+	// Получаем недельную активность
+	rows, err := db.Query(`
         SELECT day, attendance, hackathons, polls 
         FROM weekly_activity 
         WHERE user_id = $1
@@ -660,7 +758,9 @@ func getProfileHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	// Формируем ответ
 	response := map[string]interface{}{
+		"points":          user.Points,
 		"age":             user.Age,
 		"email":           user.Email,
 		"status":          "Active",
@@ -669,39 +769,43 @@ func getProfileHandler(w http.ResponseWriter, r *http.Request) {
 		"weekly_activity": weeklyActivity,
 		"avatar_url":      "https://example.com/avatar.png",
 		"name":            user.Username,
+		"first_name":      user.FirstName,
+		"last_name":       user.LastName,
+		"study_group":     user.StudyGroup,
+		"enrollment_year": user.EnrollmentYear,
+		"course":          user.Course,
+		"semester":        user.Semester,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(response)
 }
 
-// Блок: Обработчик опросника
-// Обработчик сохранения ответов
-func saveResponsesHandler(w http.ResponseWriter, r *http.Request) {
+func updateProfileHandler(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value("claims").(*Claims)
 	if !ok {
 		http.Error(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	var responses struct {
-		Answers  []int `json:"answers"`
-		SurveyID int   `json:"survey_id"`
+	var request struct {
+		Username       string   `json:"username"`
+		Email          string   `json:"email"`
+		Age            int      `json:"age"`
+		Status         string   `json:"status"`
+		Interests      []string `json:"interests"`
+		FirstName      string   `json:"first_name"`
+		LastName       string   `json:"last_name"`
+		StudyGroup     string   `json:"study_group"`
+		EnrollmentYear int      `json:"enrollment_year"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&responses); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Сериализация ответов в JSON
-	answersJSON, err := json.Marshal(responses.Answers)
-	if err != nil {
-		http.Error(w, "Failed to serialize answers", http.StatusInternalServerError)
-		return
-	}
-
-	// Начала транзакции баллов
+	// Начинаем транзакцию
 	tx, err := db.Begin()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -709,112 +813,308 @@ func saveResponsesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	_, err = db.Exec(
-		"INSERT INTO user_responses (user_id, answers, survey_id) VALUES ($1, $2, $3)",
-		claims.UserID,
-		answersJSON,
-		responses.SurveyID,
-	)
+	// Обновляем данные пользователя с новыми полями
+	_, err = tx.Exec(`
+        UPDATE users 
+        SET username = $1, email = $2, age = $3, status = $4,
+            first_name = $5, last_name = $6, study_group = $7, enrollment_year = $8
+        WHERE id = $9
+    `, request.Username, request.Email, request.Age, request.Status,
+		request.FirstName, request.LastName, request.StudyGroup, request.EnrollmentYear,
+		claims.UserID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Получение кол-ва баллов за опрос
-	var pointsToAdd int
-	err = tx.QueryRow(
-		"SELECT points FROM survey_points WHERE survey_id = $1",
-		responses.SurveyID,
-	).Scan(&pointsToAdd)
+	interestsJSON, err := json.Marshal(request.Interests)
 	if err != nil {
-		// Используем кол-во ответов как баллы, если баллы не были выставлены изначально
-		if err == sql.ErrNoRows {
-			pointsToAdd = len(responses.Answers)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		http.Error(w, "Failed to serialize interests", http.StatusInternalServerError)
+		return
 	}
 
-	_, err = tx.Exec(
-		"UPDATE users SET points = points + $1 WHERE id = $2",
-		pointsToAdd,
-		claims.UserID,
-	)
+	_, err = tx.Exec(`
+        INSERT INTO user_interests (user_id, interests) 
+        VALUES ($1, $2) 
+        ON CONFLICT (user_id) 
+        DO UPDATE SET interests = $2
+    `, claims.UserID, interestsJSON)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Завершаем транзакцию баллов
-	if err := tx.Commit(); err != nil {
+	// Коммитим транзакцию
+	if err = tx.Commit(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Обновляем данные пользователя
+	// Возвращаем обновленные данные профиля
 	var user User
-	err = db.QueryRow(
-		"SELECT id, username, email, role, age, phone, points, created_at FROM users WHERE id = $1", claims.UserID,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.Age, &user.Phone, &user.Points, &user.CreatedAt)
+	err = db.QueryRow(`
+        SELECT id, username, email, age, phone, points, status, created_at,
+               first_name, last_name, study_group, enrollment_year
+        FROM users 
+        WHERE id = $1
+    `, claims.UserID).Scan(
+		&user.ID, &user.Username, &user.Email,
+		&user.Age, &user.Phone, &user.Points, &user.Status, &user.CreatedAt,
+		&user.FirstName, &user.LastName, &user.StudyGroup, &user.EnrollmentYear,
+	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	response := struct {
-		Message     string `json:"message"`
-		PointsAdded int    `json:"points_added"`
-		TotalPoints int    `json:"total_points"`
-		User        User   `json:"user"`
-	}{
-		Message:     "Ответ сохранён успешно",
-		PointsAdded: pointsToAdd,
-		TotalPoints: user.Points,
-		User:        user,
+	// Получаем обновленные интересы в формате JSON
+	var interestsJSONResp []byte
+	var interests []string
+	err = db.QueryRow("SELECT interests FROM user_interests WHERE user_id = $1", claims.UserID).Scan(&interestsJSONResp)
+	if err == nil {
+		json.Unmarshal(interestsJSONResp, &interests)
+	} else if err == sql.ErrNoRows {
+		interests = []string{}
+	} else {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"id":              user.ID,
+		"username":        user.Username,
+		"email":           user.Email,
+		"age":             user.Age,
+		"status":          user.Status,
+		"interests":       interests,
+		"first_name":      user.FirstName,
+		"last_name":       user.LastName,
+		"study_group":     user.StudyGroup,
+		"enrollment_year": user.EnrollmentYear,
+		"message":         "Profile updated successfully",
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
-	w.WriteHeader(http.StatusCreated)
 }
 
-// Обработчик получения ответов
-func getResponsesHandler(w http.ResponseWriter, r *http.Request) {
+func getCurrentSemester(enrollmentYear int) (int, int) {
+	now := time.Now()
+	currentYear := now.Year()
+	currentMonth := int(now.Month())
+
+	// Расчет курса
+	course := currentYear - enrollmentYear
+	if currentMonth >= 9 { // Если сентябрь или позже, то учебный год начался
+		course++
+	}
+
+	// Расчет семестра (1 семестр: сентябрь-январь, 2 семестр: февраль-июнь)
+	var semester int
+	if currentMonth >= 2 && currentMonth <= 6 {
+		semester = 2
+	} else {
+		semester = 1
+	}
+
+	return course, semester
+}
+
+// Блок: Обработчик опросника
+
+// Создание опроса
+func createSurveyHandler(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value("claims").(*Claims)
 	if !ok {
 		http.Error(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	rows, err := db.Query(
-		"SELECT answers, created_at FROM user_responses WHERE user_id = $1 ORDER BY created_at DESC",
-		claims.UserID,
-	)
+	var survey Survey
+	if err := json.NewDecoder(r.Body).Decode(&survey); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	questionsJSON, err := json.Marshal(survey.Questions)
+	if err != nil {
+		http.Error(w, "Failed to serialize questions", http.StatusInternalServerError)
+		return
+	}
+
+	err = db.QueryRow(
+		`INSERT INTO surveys (title, description, questions, created_by) 
+         VALUES ($1, $2, $3, $4) RETURNING id, created_at`,
+		survey.Title, survey.Description, questionsJSON, claims.UserID,
+	).Scan(&survey.ID, &survey.CreatedAt)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(survey)
+}
+
+// Получение всех активных опросов
+func getSurveysHandler(w http.ResponseWriter, r *http.Request) {
+	rows, err := db.Query(`
+        SELECT id, title, description, questions, created_by, created_at 
+        FROM surveys WHERE is_active = true ORDER BY created_at DESC
+    `)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	var responses []map[string]interface{}
+	var surveys []Survey
 	for rows.Next() {
-		var answers []int
-		var created_At time.Time
+		var survey Survey
+		var questionsJSON []byte
 
-		if err := rows.Scan(&answers, &created_At); err != nil {
+		err := rows.Scan(
+			&survey.ID, &survey.Title, &survey.Description,
+			&questionsJSON, &survey.CreatedBy, &survey.CreatedAt,
+		)
+		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		responses = append(responses, map[string]interface{}{
-			"answers":    answers,
-			"created_at": created_At.Format(time.RFC3339),
-		})
+		if err := json.Unmarshal(questionsJSON, &survey.Questions); err != nil {
+			http.Error(w, "Failed to parse questions", http.StatusInternalServerError)
+			return
+		}
+
+		surveys = append(surveys, survey)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(responses)
+	json.NewEncoder(w).Encode(surveys)
+}
+
+// Прохождение опроса
+func submitSurveyHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value("claims").(*Claims)
+	if !ok {
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	var submission struct {
+		SurveyID int           `json:"survey_id"`
+		Answers  []interface{} `json:"answers"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&submission); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Проверяем, не проходил ли пользователь уже этот опрос
+	var alreadySubmitted bool
+	err := db.QueryRow(
+		"SELECT EXISTS(SELECT 1 FROM user_responses WHERE user_id = $1 AND survey_id = $2)",
+		claims.UserID, submission.SurveyID,
+	).Scan(&alreadySubmitted)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if alreadySubmitted {
+		http.Error(w, "Survey already submitted", http.StatusBadRequest)
+		return
+	}
+
+	answersJSON, err := json.Marshal(submission.Answers)
+	if err != nil {
+		http.Error(w, "Failed to serialize answers", http.StatusInternalServerError)
+		return
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	// Сохраняем ответы
+	_, err = tx.Exec(
+		"INSERT INTO user_responses (user_id, survey_id, answers) VALUES ($1, $2, $3)",
+		claims.UserID, submission.SurveyID, answersJSON,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Получаем баллы за опрос
+	var pointsToAdd int
+	err = tx.QueryRow(
+		"SELECT points FROM survey_points WHERE survey_id = $1",
+		submission.SurveyID,
+	).Scan(&pointsToAdd)
+
+	if err != nil {
+		// Если баллы не установлены, используем количество ответов
+		if err == sql.ErrNoRows {
+			pointsToAdd = len(submission.Answers)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Начисляем баллы
+	_, err = tx.Exec(
+		"UPDATE users SET points = points + $1 WHERE id = $2",
+		pointsToAdd, claims.UserID,
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Получаем обновленные данные пользователя
+	var user User
+	err = db.QueryRow(
+		`SELECT id, username, email, first_name, last_name, study_group, enrollment_year, points 
+		 FROM users WHERE id = $1`,
+		claims.UserID,
+	).Scan(&user.ID, &user.Username, &user.Email, &user.FirstName, &user.LastName,
+		&user.StudyGroup, &user.EnrollmentYear, &user.Points)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Вычисляем курс и семестр
+	if user.EnrollmentYear > 0 {
+		user.Course, user.Semester = getCurrentSemester(user.EnrollmentYear)
+	}
+
+	response := map[string]interface{}{
+		"message":      "Survey submitted successfully",
+		"points_added": pointsToAdd,
+		"total_points": user.Points,
+		"user":         user,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 // Обработчик для установки баллов за опрос

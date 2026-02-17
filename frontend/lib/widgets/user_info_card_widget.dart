@@ -9,6 +9,7 @@ class UserInfoCardWidget extends StatelessWidget {
   final Color cardColor; // Цвет фона карточки
   final bool isEnglish; // Флаг для определения языка
   final int points;
+  final VoidCallback? onInfoPressed; // Callback для нажатия на иконку информации
 
   const UserInfoCardWidget({
     super.key,
@@ -17,19 +18,40 @@ class UserInfoCardWidget extends StatelessWidget {
     required this.cardColor,
     required this.isEnglish, // Добавлен флаг для языка
     required this.points,
+    this.onInfoPressed, // Опциональный callback
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16), // Отступы внутри карточки
-      decoration: BoxDecoration(
-        color: cardColor.withOpacity(0.5), // Полупрозрачный фон карточки
-        borderRadius: BorderRadius.circular(12), // Закругленные углы
-      ),
-      child: Column(
-        children: userInfo.map((info) => _buildInfoRow(info)).toList(), // Создание строк для каждого элемента userInfo
-      ),
+    return Stack(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16), // Отступы внутри карточки
+          decoration: BoxDecoration(
+            color: cardColor.withOpacity(0.5), // Полупрозрачный фон карточки
+            borderRadius: BorderRadius.circular(12), // Закругленные углы
+          ),
+          child: Column(
+            children: userInfo.map((info) => _buildInfoRow(info)).toList(), // Создание строк для каждого элемента userInfo
+          ),
+        ),
+        if (onInfoPressed != null)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: IconButton(
+              icon: Icon(
+                Icons.info_outline,
+                color: textColorSecondary,
+                size: 24,
+              ),
+              onPressed: onInfoPressed,
+              tooltip: isEnglish ? 'More Details' : 'Подробнее',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ),
+      ],
     );
   }
 

@@ -17,6 +17,12 @@ class _RegisterPageState extends State<RegisterPage> {
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _studyGroupController = TextEditingController();
+  final _enrollmentYearController = TextEditingController();
+  final _educationalInstitutionController = TextEditingController();
+  final _educationalDirectionController = TextEditingController();
   final _ageController = TextEditingController();
   final _phoneController = TextEditingController();
 
@@ -32,6 +38,12 @@ class _RegisterPageState extends State<RegisterPage> {
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _studyGroupController.dispose();
+    _enrollmentYearController.dispose();
+    _educationalInstitutionController.dispose();
+    _educationalDirectionController.dispose();
     _ageController.dispose();
     _phoneController.dispose();
     super.dispose();
@@ -89,7 +101,7 @@ class _RegisterPageState extends State<RegisterPage> {
           TextFormField(
             controller: _usernameController,
             decoration: InputDecoration(
-              labelText: 'Имя пользователя',
+              labelText: 'Никнейм (необязательно)',
               labelStyle: const TextStyle(
                 fontFamily: 'Cornerita',
                 color: _textColorSecondary,
@@ -117,12 +129,6 @@ class _RegisterPageState extends State<RegisterPage> {
               fontFamily: 'Cornerita',
               color: Colors.white,
             ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Пожалуйста, введите имя пользователя';
-              }
-              return null;
-            },
           ),
           const SizedBox(height: 15),
           TextFormField(
@@ -211,10 +217,9 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
           const SizedBox(height: 15),
           TextFormField(
-            controller: _ageController,
-            keyboardType: TextInputType.number,
+            controller: _firstNameController,
             decoration: InputDecoration(
-              labelText: 'Возраст (необязательно)',
+              labelText: 'Имя',
               labelStyle: const TextStyle(
                 fontFamily: 'Cornerita',
                 color: _textColorSecondary,
@@ -242,13 +247,263 @@ class _RegisterPageState extends State<RegisterPage> {
               fontFamily: 'Cornerita',
               color: Colors.white,
             ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Пожалуйста, введите имя';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 15),
+          TextFormField(
+            controller: _lastNameController,
+            decoration: InputDecoration(
+              labelText: 'Фамилия',
+              labelStyle: const TextStyle(
+                fontFamily: 'Cornerita',
+                color: _textColorSecondary,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: _textColorSecondary),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: _secondaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: _tertiaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: _tertiaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              filled: true,
+              fillColor: _cardColor.withOpacity(0.5),
+            ),
+            style: const TextStyle(
+              fontFamily: 'Cornerita',
+              color: Colors.white,
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Пожалуйста, введите фамилию';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 15),
+          TextFormField(
+            controller: _studyGroupController,
+            decoration: InputDecoration(
+              labelText: 'Учебная группа',
+              labelStyle: const TextStyle(
+                fontFamily: 'Cornerita',
+                color: _textColorSecondary,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: _textColorSecondary),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: _secondaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: _tertiaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: _tertiaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              filled: true,
+              fillColor: _cardColor.withOpacity(0.5),
+            ),
+            style: const TextStyle(
+              fontFamily: 'Cornerita',
+              color: Colors.white,
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Пожалуйста, введите учебную группу';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 15),
+          TextFormField(
+            controller: _enrollmentYearController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: 'Год поступления',
+              labelStyle: const TextStyle(
+                fontFamily: 'Cornerita',
+                color: _textColorSecondary,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: _textColorSecondary),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: _secondaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: _tertiaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: _tertiaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              filled: true,
+              fillColor: _cardColor.withOpacity(0.5),
+            ),
+            style: const TextStyle(
+              fontFamily: 'Cornerita',
+              color: Colors.white,
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Пожалуйста, введите год поступления';
+              }
+              final year = int.tryParse(value);
+              if (year == null || year < 1900 || year > 2100) {
+                return 'Введите корректный год';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 15),
+          TextFormField(
+            controller: _educationalInstitutionController,
+            decoration: InputDecoration(
+              labelText: 'Учебное заведение',
+              labelStyle: const TextStyle(
+                fontFamily: 'Cornerita',
+                color: _textColorSecondary,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: _textColorSecondary),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: _secondaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: _tertiaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: _tertiaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              filled: true,
+              fillColor: _cardColor.withOpacity(0.5),
+            ),
+            style: const TextStyle(
+              fontFamily: 'Cornerita',
+              color: Colors.white,
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Пожалуйста, введите учебное заведение';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 15),
+          TextFormField(
+            controller: _educationalDirectionController,
+            decoration: InputDecoration(
+              labelText: 'Учебное направление',
+              labelStyle: const TextStyle(
+                fontFamily: 'Cornerita',
+                color: _textColorSecondary,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: _textColorSecondary),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: _secondaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: _tertiaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: _tertiaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              filled: true,
+              fillColor: _cardColor.withOpacity(0.5),
+            ),
+            style: const TextStyle(
+              fontFamily: 'Cornerita',
+              color: Colors.white,
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Пожалуйста, введите учебное направление';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 15),
+          TextFormField(
+            controller: _ageController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: 'Возраст',
+              labelStyle: const TextStyle(
+                fontFamily: 'Cornerita',
+                color: _textColorSecondary,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: _textColorSecondary),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: _secondaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: _tertiaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: _tertiaryColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              filled: true,
+              fillColor: _cardColor.withOpacity(0.5),
+            ),
+            style: const TextStyle(
+              fontFamily: 'Cornerita',
+              color: Colors.white,
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Пожалуйста, введите возраст';
+              }
+              final age = int.tryParse(value);
+              if (age == null || age < 1 || age > 150) {
+                return 'Введите корректный возраст';
+              }
+              return null;
+            },
           ),
           const SizedBox(height: 15),
           TextFormField(
             controller: _phoneController,
             keyboardType: TextInputType.phone,
             decoration: InputDecoration(
-              labelText: 'Телефон (необязательно)',
+              labelText: 'Телефон',
               labelStyle: const TextStyle(
                 fontFamily: 'Cornerita',
                 color: _textColorSecondary,
@@ -276,6 +531,12 @@ class _RegisterPageState extends State<RegisterPage> {
               fontFamily: 'Cornerita',
               color: Colors.white,
             ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Пожалуйста, введите телефон';
+              }
+              return null;
+            },
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -294,12 +555,18 @@ class _RegisterPageState extends State<RegisterPage> {
                 if (_formKey.currentState!.validate()) {
                   try {
                     await ApiService.register(
-                      username: _usernameController.text,
+                      username: _usernameController.text.isNotEmpty
+                          ? _usernameController.text
+                          : null,
                       email: _emailController.text,
                       password: _passwordController.text,
-                      age: _ageController.text.isNotEmpty
-                          ? int.parse(_ageController.text)
-                          : null,
+                      firstName: _firstNameController.text,
+                      lastName: _lastNameController.text,
+                      studyGroup: _studyGroupController.text,
+                      enrollmentYear: int.parse(_enrollmentYearController.text),
+                      educationalInstitution: _educationalInstitutionController.text,
+                      educationalDirection: _educationalDirectionController.text,
+                      age: int.parse(_ageController.text),
                       phone: _phoneController.text,
                     );
 

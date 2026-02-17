@@ -39,11 +39,20 @@ class WeeklyActivityWidget extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final data = weeklyData[index];
+                final attendance = (data['attendance'] is int) 
+                    ? (data['attendance'] as int).toDouble() 
+                    : ((data['attendance'] is double) ? data['attendance'] as double : 0.0);
+                final hackathons = (data['hackathons'] is int) 
+                    ? (data['hackathons'] as int).toDouble() 
+                    : ((data['hackathons'] is double) ? data['hackathons'] as double : 0.0);
+                final polls = (data['polls'] is int) 
+                    ? (data['polls'] as int).toDouble() 
+                    : ((data['polls'] is double) ? data['polls'] as double : 0.0);
                 return _buildDailyChart(
-                  data['day'],
-                  data['attendance'].toDouble(),
-                  data['hackathons'].toDouble(),
-                  data['polls'].toDouble(),
+                  data['day'] ?? '',
+                  attendance,
+                  hackathons,
+                  polls,
                 );
               },
             ),

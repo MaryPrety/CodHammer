@@ -2,7 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import 'story_page.dart'; // Import StoryPage
+import 'package:cod_hammer/providers/language_provider.dart';
+import 'package:provider/provider.dart';
+import 'cart_page.dart'; // Import CartPage
 
 void main() {
   runApp(const MyApp());
@@ -29,6 +31,15 @@ class ShopPage extends StatefulWidget {
 
   @override
   State<ShopPage> createState() => _ShopPageState();
+
+  // Публичный метод для получения списка товаров из состояния
+  static List<Product>? getProductsFromState(GlobalKey? widgetKey) {
+    if (widgetKey?.currentState != null && widgetKey!.currentWidget is ShopPage) {
+      final state = (widgetKey.currentState as _ShopPageState);
+      return state.products;
+    }
+    return null;
+  }
 }
 
 class _ShopPageState extends State<ShopPage> {
@@ -173,162 +184,208 @@ class _ShopPageState extends State<ShopPage> {
 
   List<Order> orderHistory = []; // Order history list (moved to ShopPage)
 
-  void _openCheckoutDialog() async {
-    List<Product> cartProducts = products.where((p) => p.quantity > 0).toList();
-    if (cartProducts.isNotEmpty) {
-      final order = await Navigator.push<Order>(
-        // Expecting Order to be returned
-        context,
-        MaterialPageRoute(
-          builder: (context) => CheckoutDialog(cartProducts: cartProducts),
-        ),
-      );
-
-      if (order != null) {
-        setState(() {
-          orderHistory.add(order); // Add new order to history
-          for (var p in products) {
-            p.quantity = 0; // Clear cart after checkout
-          }
-        });
-        // Navigate to StoryPage immediately after checkout
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => StoryPage(orderHistory: orderHistory),
-          ),
-        );
-      }
-    } else {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return const AlertDialog(
-            backgroundColor: _ShopPageState.cardColor,
-            title: Text('Корзина пуста',
-                style: TextStyle(color: _ShopPageState.secondaryColor)),
-            content: Text('Добавьте товары в корзину, чтобы продолжить.',
-                style: TextStyle(color: _ShopPageState.textColorSecondary)),
-            actions: <Widget>[
-              CloseButton(
-                color: _ShopPageState.secondaryColor,
-              ),
-            ],
-          );
-        },
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
-    int crossAxisCount = screenWidth < 600 ? 3 : 4;
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, _) {
+        final isEnglish = languageProvider.isEnglish;
 
-    int totalQuantity = 0;
-    int totalPrice = 0;
+        double screenWidth = MediaQuery.of(context).size.width;
+        int crossAxisCount = screenWidth < 600 ? 3 : 4;
 
-    for (var product in products) {
-      totalQuantity += product.quantity;
-      totalPrice += product.quantity * product.price;
-    }
+        int totalQuantity = 0;
+        int totalPrice = 0;
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        backgroundColor: backgroundColor,
-        title: const Text('',
-            style: TextStyle(
-                color: secondaryColor)), // Removed "Магазин MIREA" title
-        actions: [
-          // Removed IconButton for history here
-        ],
-      ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0, vertical: 10.0),
-                child: Wrap(
-                  spacing: 8.0,
-                  runSpacing: 8.0,
-                  alignment: WrapAlignment.center,
-                  children: filterCategories
-                      .map((category) => FilterButton(
-                            text: category,
-                            isSelected: selectedCategory == category,
-                            onPressed: () {
-                              setState(() {
-                                selectedCategory = category;
-                              });
+        for (var product in products) {
+          totalQuantity += product.quantity;
+          totalPrice += product.quantity * product.price;
+        }
+
+        return Scaffold(
+          backgroundColor: backgroundColor,
+          appBar: AppBar(
+            backgroundColor: backgroundColor,
+            title: const Text(
+              '',
+              style: TextStyle(color: secondaryColor),
+            ), // Title is handled in main navigation
+            actions: [
+              Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.shopping_cart,
+                      color: secondaryColor,
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CartPage(
+                            products: products,
+                            onCartUpdated: () {
+                              setState(() {});
                             },
-                          ))
-                      .toList(),
-                ),
-              ),
-              Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    childAspectRatio: 0.75,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 10,
+                          ),
+                        ),
+                      ).then((_) {
+                        setState(() {}); // Обновляем состояние после возврата
+                      });
+                    },
                   ),
-                  itemCount: filteredProducts.length,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () => _openProductDetails(filteredProducts[index]),
-                      child: ProductCard(
-                        product: filteredProducts[index],
+                  if (totalQuantity > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: tertiaryColor,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Text(
+                          totalQuantity > 99 ? '99+' : '$totalQuantity',
+                          style: const TextStyle(
+                            color: backgroundColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                ],
               ),
             ],
           ),
-          if (totalQuantity > 0)
-            Positioned(
-              bottom: 16.0,
-              left: 16.0,
-              right: 16.0,
-              child: GestureDetector(
-                // Wrap with GestureDetector
-                onTap: _openCheckoutDialog, // Open checkout dialog on tap
-                child: Container(
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(12.0),
+          body: Stack(
+            children: [
+              Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0, vertical: 10.0),
+                    child: Wrap(
+                      spacing: 8.0,
+                      runSpacing: 8.0,
+                      alignment: WrapAlignment.center,
+                      children: filterCategories
+                          .map(
+                            (category) => FilterButton(
+                              text: category,
+                              isSelected: selectedCategory == category,
+                              onPressed: () {
+                                setState(() {
+                                  selectedCategory = category;
+                                });
+                              },
+                            ),
+                          )
+                          .toList(),
+                    ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Итого:',
-                        style: TextStyle(
-                          color: secondaryColor,
-                          fontSize: 18.0,
-                        ),
+                  Expanded(
+                    child: GridView.builder(
+                      padding: const EdgeInsets.all(16.0),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        childAspectRatio: 0.75,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 10,
                       ),
-                      Text(
-                        formatNumber(totalPrice),
-                        style: TextStyle(
-                          color: secondaryColor,
-                          fontSize: 20.0,
-                          fontWeight: FontWeight.bold,
+                      itemCount: filteredProducts.length,
+                      itemBuilder: (context, index) {
+                        return GestureDetector(
+                          onTap: () =>
+                              _openProductDetails(filteredProducts[index]),
+                          child: ProductCard(
+                            product: filteredProducts[index],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              if (totalQuantity > 0)
+                Positioned(
+                  bottom: 16.0,
+                  left: 16.0,
+                  right: 16.0,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CartPage(
+                            products: products,
+                            onCartUpdated: () {
+                              setState(() {});
+                            },
+                          ),
                         ),
+                      ).then((_) {
+                        setState(() {}); // Обновляем состояние после возврата
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(12.0),
                       ),
-                    ],
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.shopping_cart,
+                                color: secondaryColor,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                isEnglish ? 'View cart' : 'Открыть корзину',
+                                style: const TextStyle(
+                                  color: secondaryColor,
+                                  fontSize: 16.0,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                isEnglish ? 'Total: ' : 'Итого: ',
+                                style: const TextStyle(
+                                  color: secondaryColor,
+                                  fontSize: 18.0,
+                                ),
+                              ),
+                              Text(
+                                formatNumber(totalPrice),
+                                style: const TextStyle(
+                                  color: secondaryColor,
+                                  fontSize: 20.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-        ],
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -530,129 +587,147 @@ class _ProductDetailsDialogState extends State<ProductDetailsDialog> {
 
   @override
   Widget build(BuildContext context) {
-    String buttonText = _quantity > 0 ? 'Добавить в корзину' : 'Закрыть';
-    if (_quantity == 0 && widget.product.quantity > 0) {
-      buttonText = 'Удалить из корзины';
-    }
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, _) {
+        final isEnglish = languageProvider.isEnglish;
 
-    return Dialog(
-      backgroundColor: _ShopPageState.cardColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Center(
-              child: AvatarWidget(
-                product: widget.product,
-                imageUrl: widget.product.image,
-                width: 150,
-                height: 150,
-                glowColor: _ShopPageState.glowColor,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: Text(
-                widget.product.name,
-                style: const TextStyle(
-                  fontFamily: 'Cornerita',
-                  fontSize: 22,
-                  color: _ShopPageState.secondaryColor,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: 15),
-            Text(
-              widget.product.descriptionRu,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: 'Cornerita',
-                fontSize: 16,
-                color: _ShopPageState.textColorSecondary,
-              ),
-            ),
-            if (widget.product.details != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                widget.product.details!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'Cornerita',
-                  fontSize: 14,
-                  color: _ShopPageState.textColorSecondary,
-                ),
-              ),
-            ],
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+        String buttonText;
+        if (_quantity > 0) {
+          buttonText = isEnglish ? 'Add to cart' : 'Добавить в корзину';
+        } else if (_quantity == 0 && widget.product.quantity > 0) {
+          buttonText = isEnglish ? 'Remove from cart' : 'Удалить из корзины';
+        } else {
+          buttonText = isEnglish ? 'Close' : 'Закрыть';
+        }
+
+        final description = isEnglish
+            ? widget.product.descriptionEn
+            : widget.product.descriptionRu;
+
+        return Dialog(
+          backgroundColor: _ShopPageState.cardColor,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.remove,
-                      color: _ShopPageState.secondaryColor),
-                  onPressed: () {
-                    if (_quantity > 0) {
-                      setState(() {
-                        _quantity--;
-                      });
-                    }
-                  },
-                ),
-                SizedBox(
-                  width: 140,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: _ShopPageState.backgroundColor,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '${widget.product.price} * $_quantity = ${formatNumber(widget.product.price * _quantity)}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          color: _ShopPageState.secondaryColor, fontSize: 14),
-                    ),
+                Center(
+                  child: AvatarWidget(
+                    product: widget.product,
+                    imageUrl: widget.product.image,
+                    width: 150,
+                    height: 150,
+                    glowColor: _ShopPageState.glowColor,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.add,
-                      color: _ShopPageState.secondaryColor),
-                  onPressed: () {
-                    setState(() {
-                      _quantity++;
-                    });
-                  },
+                const SizedBox(height: 20),
+                Center(
+                  child: Text(
+                    widget.product.name,
+                    style: const TextStyle(
+                      fontFamily: 'Cornerita',
+                      fontSize: 22,
+                      color: _ShopPageState.secondaryColor,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Text(
+                  description,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'Cornerita',
+                    fontSize: 16,
+                    color: _ShopPageState.textColorSecondary,
+                  ),
+                ),
+                if (widget.product.details != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    widget.product.details!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'Cornerita',
+                      fontSize: 14,
+                      color: _ShopPageState.textColorSecondary,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove,
+                          color: _ShopPageState.secondaryColor),
+                      onPressed: () {
+                        if (_quantity > 0) {
+                          setState(() {
+                            _quantity--;
+                          });
+                        }
+                      },
+                    ),
+                    SizedBox(
+                      width: 140,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: _ShopPageState.backgroundColor,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${widget.product.price} * $_quantity = ${formatNumber(widget.product.price * _quantity)}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: _ShopPageState.secondaryColor,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add,
+                          color: _ShopPageState.secondaryColor),
+                      onPressed: () {
+                        setState(() {
+                          _quantity++;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(_quantity);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _ShopPageState.secondaryColor,
+                      foregroundColor: _ShopPageState.backgroundColor,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 30, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      shadowColor:
+                          _ShopPageState.secondaryColor.withOpacity(0.4),
+                      elevation: 6,
+                    ),
+                    child: Text(buttonText),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop(_quantity);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _ShopPageState.secondaryColor,
-                  foregroundColor: _ShopPageState.backgroundColor,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  shadowColor: _ShopPageState.secondaryColor.withOpacity(0.4),
-                  elevation: 6,
-                ),
-                child: Text(buttonText),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -669,134 +744,161 @@ class CheckoutDialog extends StatefulWidget {
 class _CheckoutDialogState extends State<CheckoutDialog> {
   @override
   Widget build(BuildContext context) {
-    if (widget.cartProducts.isEmpty) {
-      return AlertDialog(
-        backgroundColor: _ShopPageState.cardColor
-            .withOpacity(0.8), // Slightly transparent background
-        title: const Text('Корзина пуста',
-            style: TextStyle(color: _ShopPageState.secondaryColor)),
-        content: const Text('Добавьте товары в корзину, чтобы продолжить.',
-            style: TextStyle(color: _ShopPageState.textColorSecondary)),
-        actions: <Widget>[
-          TextButton(
-            child: const Text('Закрыть',
-                style: TextStyle(color: _ShopPageState.secondaryColor)),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      );
-    }
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, _) {
+        final isEnglish = languageProvider.isEnglish;
 
-    int totalPrice = 0;
-    for (var product in widget.cartProducts) {
-      totalPrice += product.quantity * product.price;
-    }
-
-    return Stack(
-      // Use Stack to place BackdropFilter behind the content
-      children: [
-        Positioned.fill(
-          // BackdropFilter needs to fill the space
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-            child: Container(
-                color: Colors
-                    .transparent), // Transparent background for blur effect
-          ),
-        ),
-        Dialog(
-          backgroundColor:
-              Colors.transparent, // Make Dialog background transparent
-          elevation: 0, // Remove default dialog elevation
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Container(
-            padding: const EdgeInsets.all(20.0),
-            decoration: BoxDecoration(
-              // Apply background and rounded corners to the content container
-              color: _ShopPageState.cardColor
-                  .withOpacity(0.9), // Card color with slight transparency
-              borderRadius: BorderRadius.circular(12),
+        if (widget.cartProducts.isEmpty) {
+          return AlertDialog(
+            backgroundColor:
+                _ShopPageState.cardColor.withOpacity(0.8),
+            title: Text(
+              isEnglish ? 'Cart is empty' : 'Корзина пуста',
+              style: const TextStyle(color: _ShopPageState.secondaryColor),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text('Сводка заказа',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
+            content: Text(
+              isEnglish
+                  ? 'Add items to the cart to continue.'
+                  : 'Добавьте товары в корзину, чтобы продолжить.',
+              style: const TextStyle(
+                  color: _ShopPageState.textColorSecondary),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: Text(
+                  isEnglish ? 'Close' : 'Закрыть',
+                  style: const TextStyle(
+                      color: _ShopPageState.secondaryColor),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        }
+
+        int totalPrice = 0;
+        for (var product in widget.cartProducts) {
+          totalPrice += product.quantity * product.price;
+        }
+
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+            Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              child: Container(
+                padding: const EdgeInsets.all(20.0),
+                decoration: BoxDecoration(
+                  color: _ShopPageState.cardColor.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      isEnglish ? 'Order summary' : 'Сводка заказа',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
                         fontFamily: 'Cornerita',
                         fontSize: 22,
-                        color: _ShopPageState.secondaryColor)),
-                const SizedBox(height: 20),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: widget.cartProducts.length,
-                  separatorBuilder: (context, index) =>
-                      const Divider(color: _ShopPageState.textColorSecondary),
-                  itemBuilder: (context, index) {
-                    final product = widget.cartProducts[index];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(product.name,
-                              style: const TextStyle(
-                                  color: _ShopPageState.secondaryColor)),
-                          Text(
-                              '${product.quantity} x ${product.price} = ${formatNumber(product.quantity * product.price)}',
-                              style: const TextStyle(
-                                  color: _ShopPageState.textColorSecondary)),
-                        ],
+                        color: _ShopPageState.secondaryColor,
                       ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
-                Text('Итого: ${formatNumber(totalPrice)}',
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(
+                    ),
+                    const SizedBox(height: 20),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: widget.cartProducts.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(
+                              color: _ShopPageState.textColorSecondary),
+                      itemBuilder: (context, index) {
+                        final product = widget.cartProducts[index];
+                        return Padding(
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Row(
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                product.name,
+                                style: const TextStyle(
+                                    color:
+                                        _ShopPageState.secondaryColor),
+                              ),
+                              Text(
+                                '${product.quantity} x ${product.price} = ${formatNumber(product.quantity * product.price)}',
+                                style: const TextStyle(
+                                  color: _ShopPageState.textColorSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      '${isEnglish ? 'Total' : 'Итого'}: ${formatNumber(totalPrice)}',
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: _ShopPageState.secondaryColor)),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    List<OrderItem> orderItems = widget.cartProducts
-                        .map((product) => OrderItem(
-                            product: product, quantity: product.quantity))
-                        .toList();
-                    Order order = Order(
-                      orderId: DateTime.now()
-                          .millisecondsSinceEpoch
-                          .toString(), // Unique order ID
-                      orderDate: DateTime.now(),
-                      orderItems: orderItems,
-                      totalAmount: totalPrice, // Add totalAmount to Order
-                    );
-                    Navigator.of(context).pop(order); // Return the order
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _ShopPageState.secondaryColor,
-                    foregroundColor: _ShopPageState.backgroundColor,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 30, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    shadowColor: _ShopPageState.secondaryColor.withOpacity(0.4),
-                    elevation: 6,
-                  ),
-                  child: const Text('Оформить заказ'),
+                        color: _ShopPageState.secondaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () {
+                        List<OrderItem> orderItems = widget.cartProducts
+                            .map((product) => OrderItem(
+                                product: product,
+                                quantity: product.quantity))
+                            .toList();
+                        Order order = Order(
+                          orderId: DateTime.now()
+                              .millisecondsSinceEpoch
+                              .toString(),
+                          orderDate: DateTime.now(),
+                          orderItems: orderItems,
+                          totalAmount: totalPrice,
+                        );
+                        Navigator.of(context).pop(order);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _ShopPageState.secondaryColor,
+                        foregroundColor: _ShopPageState.backgroundColor,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 30, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        shadowColor: _ShopPageState.secondaryColor
+                            .withOpacity(0.4),
+                        elevation: 6,
+                      ),
+                      child: Text(
+                        isEnglish ? 'Place order' : 'Оформить заказ',
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }
@@ -812,8 +914,16 @@ class OrderHistoryPage extends StatelessWidget {
       backgroundColor: _ShopPageState.backgroundColor,
       appBar: AppBar(
         backgroundColor: _ShopPageState.backgroundColor,
-        title: const Text('Детали заказа',
-            style: TextStyle(color: _ShopPageState.secondaryColor)),
+        title: Consumer<LanguageProvider>(
+          builder: (context, languageProvider, _) {
+            final isEnglish = languageProvider.isEnglish;
+            return Text(
+              isEnglish ? 'Order details' : 'Детали заказа',
+              style:
+                  const TextStyle(color: _ShopPageState.secondaryColor),
+            );
+          },
+        ),
         iconTheme: const IconThemeData(color: _ShopPageState.secondaryColor),
       ),
       body: Padding(
@@ -821,15 +931,29 @@ class OrderHistoryPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Номер заказа: ${order.orderId}',
-              style: const TextStyle(
-                  fontSize: 20, color: _ShopPageState.secondaryColor),
-            ),
-            Text(
-              'Дата заказа: ${formatDate(order.orderDate)}',
-              style: const TextStyle(
-                  fontSize: 16, color: _ShopPageState.textColorSecondary),
+            Consumer<LanguageProvider>(
+              builder: (context, languageProvider, _) {
+                final isEnglish = languageProvider.isEnglish;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${isEnglish ? 'Order ID' : 'Номер заказа'}: ${order.orderId}',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        color: _ShopPageState.secondaryColor,
+                      ),
+                    ),
+                    Text(
+                      '${isEnglish ? 'Order date' : 'Дата заказа'}: ${formatDate(order.orderDate)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: _ShopPageState.textColorSecondary,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 20),
             Expanded(
@@ -865,17 +989,33 @@ class OrderHistoryPage extends StatelessWidget {
                                       fontSize: 18,
                                       color: _ShopPageState.secondaryColor),
                                 ),
-                                Text(
-                                  'Количество: ${orderItem.quantity}',
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      color: _ShopPageState.textColorSecondary),
-                                ),
-                                Text(
-                                  'Цена: ${formatNumber(orderItem.product.price * orderItem.quantity)}',
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      color: _ShopPageState.tertiaryColor),
+                                Consumer<LanguageProvider>(
+                                  builder: (context, languageProvider, _) {
+                                    final isEnglish =
+                                        languageProvider.isEnglish;
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${isEnglish ? 'Quantity' : 'Количество'}: ${orderItem.quantity}',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color: _ShopPageState
+                                                .textColorSecondary,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${isEnglish ? 'Price' : 'Цена'}: ${formatNumber(orderItem.product.price * orderItem.quantity)}',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color:
+                                                _ShopPageState.tertiaryColor,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 ),
                               ],
                             ),
@@ -890,12 +1030,18 @@ class OrderHistoryPage extends StatelessWidget {
             const SizedBox(height: 20),
             Align(
               alignment: Alignment.bottomRight,
-              child: Text(
-                'Итоговая сумма: ${formatNumber(order.totalAmount)}',
-                style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: _ShopPageState.secondaryColor),
+              child: Consumer<LanguageProvider>(
+                builder: (context, languageProvider, _) {
+                  final isEnglish = languageProvider.isEnglish;
+                  return Text(
+                    '${isEnglish ? 'Total amount' : 'Итоговая сумма'}: ${formatNumber(order.totalAmount)}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: _ShopPageState.secondaryColor,
+                    ),
+                  );
+                },
               ),
             ),
           ],

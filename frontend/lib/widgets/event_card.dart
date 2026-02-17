@@ -2,19 +2,17 @@
 
 import 'package:flutter/material.dart';
 import 'package:translator/translator.dart';
+import '../providers/language_provider.dart';
+import 'package:provider/provider.dart';
 
 class EventCard extends StatefulWidget {
   final String iconPath;
   final String text;
-  final String russianFontFamily;
-  final String englishFontFamily;
 
   const EventCard({
     super.key,
     required this.iconPath,
     required this.text,
-    required this.russianFontFamily,
-    required this.englishFontFamily,
   });
 
   @override
@@ -22,8 +20,6 @@ class EventCard extends StatefulWidget {
 }
 
 class _EventCardState extends State<EventCard> {
-  bool _isTranslated = false;
-
   Future<String> translateText(String text) async {
     final translator = GoogleTranslator();
     final translation = await translator.translate(text, from: 'ru', to: 'en');
@@ -32,54 +28,51 @@ class _EventCardState extends State<EventCard> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String>(
-      future: translateText(widget.text),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Text(
-            'Ошибка: ${snapshot.error}',
-            style: const TextStyle(color: Colors.red),
-          );
-        } else if (snapshot.hasData) {
-          final String translatedText = snapshot.data!;
-          return Padding(
-            padding: const EdgeInsets.all(16.0), // Добавляем отступы по всем сторонам
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _isTranslated = !_isTranslated;
-                });
-              },
-              child: Row(
-                children: [
-                  Image.asset(
-                    widget.iconPath,
-                    width: 32,
-                    height: 32,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _isTranslated ? translatedText : widget.text,
-                      style: TextStyle(
-                        color: const Color(0xFFFAEFD9),
-                        fontSize: _isTranslated ? 14 : 16, // Уменьшаем размер шрифта для английского текста
-                        fontFamily: _isTranslated
-                            ? widget.englishFontFamily
-                            : widget.russianFontFamily,
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, _) {
+        final isEnglish = languageProvider.isEnglish;
+        return FutureBuilder<String>(
+          key: ValueKey(isEnglish), // Пересоздаем FutureBuilder при изменении языка
+          future: translateText(widget.text),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Text(
+                isEnglish ? 'Error: ${snapshot.error}' : 'Ошибка: ${snapshot.error}',
+                style: const TextStyle(color: Colors.red),
+              );
+            } else if (snapshot.hasData) {
+              final String translatedText = snapshot.data!;
+              return Padding(
+                padding: const EdgeInsets.all(16.0), // Добавляем отступы по всем сторонам
+                child: Row(
+                  children: [
+                    Image.asset(
+                      widget.iconPath,
+                      width: 32,
+                      height: 32,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        isEnglish ? translatedText : widget.text,
+                        style: TextStyle(
+                          color: const Color(0xFFFAEFD9),
+                          fontSize: isEnglish ? 14 : 16, // Уменьшаем размер шрифта для английского текста
+                          fontFamily: isEnglish ? 'Tomorrow' : 'Cornerita',
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        } else {
-          return const Text('Данные недоступны');
-        }
+                  ],
+                ),
+              );
+            } else {
+              return const Text('Данные недоступны');
+            }
+          },
+        );
       },
     );
   }

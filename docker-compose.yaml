@@ -14,6 +14,12 @@ services:
       - DB_NAME=users
       - REDIS_ADDR=redis:6379
       - REDIS_PASSWORD=9731
+      # SMTP настройки для отправки email (раскомментируйте и заполните для работы)
+      # - SMTP_HOST=smtp.gmail.com
+      # - SMTP_PORT=587
+      # - SMTP_USER=your-email@gmail.com
+      # - SMTP_PASSWORD=your-app-password
+      # - FROM_EMAIL=your-email@gmail.com
     depends_on:
       db:
         condition: service_healthy
@@ -40,11 +46,11 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: redis-server --requirepass your_redis_password
+    command: redis-server --requirepass 9731
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "your_redis_password", "ping"]
+      test: ["CMD", "redis-cli", "-a", "9731", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5

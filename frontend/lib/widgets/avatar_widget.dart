@@ -1,16 +1,17 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 
 class AvatarWidget extends StatelessWidget {
-  final String imageUrl;
+  final String? imageUrl;
   final double width;
   final double height;
   final Color glowColor;
 
   const AvatarWidget({
     super.key,
-    required this.imageUrl,
+    this.imageUrl,
     required this.width,
     required this.height,
     required this.glowColor,
@@ -18,6 +19,8 @@ class AvatarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String imagePath = imageUrl ?? 'assets/person.png';
+    
     return Container(
       width: width,
       height: height,
@@ -38,17 +41,43 @@ class AvatarWidget extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
-        child: Image.asset(
-          imageUrl,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Image.asset(
-              'assets/placeholder.png',
-              fit: BoxFit.cover,
-            );
-          },
-        ),
+        child: _buildImage(imagePath),
       ),
+    );
+  }
+
+  Widget _buildImage(String imagePath) {
+    // Если путь начинается с "assets/", используем Image.asset
+    if (imagePath.startsWith('assets/')) {
+      return Image.asset(
+        imagePath,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Image.asset(
+            'assets/person.png',
+            fit: BoxFit.cover,
+          );
+        },
+      );
+    }
+    // Иначе пытаемся загрузить как файл
+    final file = File(imagePath);
+    if (file.existsSync()) {
+      return Image.file(
+        file,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Image.asset(
+            'assets/person.png',
+            fit: BoxFit.cover,
+          );
+        },
+      );
+    }
+    // По умолчанию используем person.png
+    return Image.asset(
+      'assets/person.png',
+      fit: BoxFit.cover,
     );
   }
 }

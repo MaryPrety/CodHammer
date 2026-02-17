@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'register_page.dart';
+// ЗАКОММЕНТИРОВАНО: import 'verify_code_page.dart'; // Можно вернуть, раскомментировав
 
 class AuthorizePage extends StatefulWidget {
   final VoidCallback? onLoginSuccess;
@@ -14,6 +15,8 @@ class _AuthorizePageState extends State<AuthorizePage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _saveSession = true; // По умолчанию сохраняем сессию
+  bool _isLoading = false;
 
   // Цветовая палитра
   static const _secondaryColor = Color.fromRGBO(205, 251, 228, 1); // Light Green
@@ -163,6 +166,35 @@ class _AuthorizePageState extends State<AuthorizePage> {
               return null;
             },
           ),
+          const SizedBox(height: 15),
+          // Чекбокс для сохранения сессии
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              children: [
+                Checkbox(
+                  value: _saveSession,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      _saveSession = value ?? true;
+                    });
+                  },
+                  activeColor: _tertiaryColor,
+                  checkColor: Colors.white,
+                ),
+                Expanded(
+                  child: Text(
+                    'Автоматически сохранять профиль при повторном запуске.',
+                    style: TextStyle(
+                      fontFamily: 'Cornerita',
+                      color: _textColorSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 20),
           SizedBox(
             width: MediaQuery.of(context).size.width * 0.5,
@@ -176,45 +208,119 @@ class _AuthorizePageState extends State<AuthorizePage> {
                 elevation: 5,
                 shadowColor: _tertiaryColor.withOpacity(0.4),
               ),
-              onPressed: () async {
-                if (_formKey.currentState!.validate()) {
-                  try {
-                    await ApiService.login(
-                      _emailController.text,
-                      _passwordController.text,
-                    );
-
-                  final token = await ApiService.getToken();
-                  if (token != null) {
-                    if (mounted) {
-                      widget.onLoginSuccess?.call();
-                      Navigator.of(context).pushReplacementNamed('/main');
-                    }
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Ошибка: токен не получен")),
-                    );
-                    }
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Ошибка входа: $e")),
-                    );
-                  }
-                }
-              },
-              child: const Text(
-                'Войти',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Tomorrow',
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
-              ),
+              onPressed: _isLoading
+                  ? null
+                  : () async {
+                      if (_formKey.currentState!.validate()) {
+                        await _handleLogin();
+                      }
+                    },
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      'Войти',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Tomorrow',
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                    ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _handleLogin() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // ЗАКОММЕНТИРОВАНО: Вход с кодом на email (можно вернуть, раскомментировав)
+      /*
+      // Проверяем пароль и получаем email для отправки кода
+      final response = await ApiService.login(
+        _emailController.text,
+        _passwordController.text,
+        saveSession: _saveSession,
+      );
+
+      // Получаем email из ответа
+      String email = _emailController.text;
+      if (response is Map && response['email'] != null) {
+        email = response['email'] as String;
+      }
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        // Переходим на страницу ввода кода
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VerifyCodePage(
+              email: email,
+              saveSession: _saveSession,
+              onVerificationSuccess: widget.onLoginSuccess,
+            ),
+          ),
+        );
+      }
+      return;
+      */
+
+      // Простой вход по паролю
+      await ApiService.login(
+        _emailController.text,
+        _passwordController.text,
+        saveSession: _saveSession,
+      );
+
+      final token = await ApiService.getToken();
+      if (token != null) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          widget.onLoginSuccess?.call();
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Ошибка: токен не получен"),
+              backgroundColor: _cardColor,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Ошибка входа: $e"),
+            backgroundColor: _tertiaryColor,
+          ),
+        );
+      }
+    }
   }
 }

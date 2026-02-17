@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 
-class BettingWidget extends StatefulWidget {
+class BettingWidget extends StatelessWidget {
   final double firstRobotPercentage;
   final double secondRobotPercentage;
   final double firstRobotCoefficient;
@@ -31,38 +31,24 @@ class BettingWidget extends StatefulWidget {
   });
 
   @override
-  _BettingWidgetState createState() => _BettingWidgetState();
-}
-
-class _BettingWidgetState extends State<BettingWidget> {
-  bool _isRussian = true; // Состояние для переключения языка
-
-  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _isRussian = !_isRussian; // Переключаем язык при нажатии
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.transparent,
-        ),
-        child: Column(
-          children: [
-            _buildButtonsRow(),
-            const SizedBox(height: 16),
-            _buildPercentageBar(),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: Colors.transparent,
+      ),
+      child: Column(
+        children: [
+          _buildButtonsRow(context),
+          const SizedBox(height: 16),
+          _buildPercentageBar(),
+        ],
       ),
     );
   }
 
-  Widget _buildButtonsRow() {
+  Widget _buildButtonsRow(BuildContext context) {
   return LayoutBuilder(
     builder: (context, constraints) {
       final buttonWidth = constraints.maxWidth / 4.5;
@@ -75,31 +61,31 @@ class _BettingWidgetState extends State<BettingWidget> {
             mainAxisSize: MainAxisSize.min,
             children: [
               GestureDetector(
-                onTap: widget.onFirstTeamImageTap,
+                onTap: onFirstTeamImageTap,
                 child: _buildIconOrImage(_getTeamColor(true), 'assets/weber.png'),
               ),
               const SizedBox(width: 8), // Уменьшаем отступ
               _buildButton(
                 width: buttonWidth,
-                text: widget.firstRobotCoefficient.toStringAsFixed(2),
+                text: firstRobotCoefficient.toStringAsFixed(2),
                 color: _getTeamColor(true),
-                onTap: widget.onFirstRobotTap,
+                onTap: onFirstRobotTap,
               ),
             ],
           ),
-          _buildTimeButton(widget.matchTime, width: timeButtonWidth),
+          _buildTimeButton(matchTime, width: timeButtonWidth),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildButton(
                 width: buttonWidth,
-                text: widget.secondRobotCoefficient.toStringAsFixed(2),
+                text: secondRobotCoefficient.toStringAsFixed(2),
                 color: _getTeamColor(false),
-                onTap: widget.onSecondRobotTap,
+                onTap: onSecondRobotTap,
               ),
               const SizedBox(width: 8), // Уменьшаем отступ
               GestureDetector(
-                onTap: widget.onSecondTeamImageTap,
+                onTap: onSecondTeamImageTap,
                 child: _buildIconOrImage(_getTeamColor(false), 'assets/au.jpg'),
               ),
             ],
@@ -211,7 +197,7 @@ class _BettingWidgetState extends State<BettingWidget> {
   }
 
   Widget _buildPercentageBar() {
-    final bool isFirstRobotDominant = widget.firstRobotPercentage > widget.secondRobotPercentage;
+    final bool isFirstRobotDominant = firstRobotPercentage > secondRobotPercentage;
 
     // Определяем цвета для доминирующей и противоположной команд
     final Color dominantColor = isFirstRobotDominant ? _getTeamColor(true) : _getTeamColor(false);
@@ -238,8 +224,8 @@ class _BettingWidgetState extends State<BettingWidget> {
           alignment: isFirstRobotDominant ? Alignment.centerLeft : Alignment.centerRight,
           child: FractionallySizedBox(
             widthFactor: isFirstRobotDominant
-                ? widget.firstRobotPercentage / 100
-                : widget.secondRobotPercentage / 100,
+                ? firstRobotPercentage / 100
+                : secondRobotPercentage / 100,
             child: Container(
               height: 32,
               decoration: BoxDecoration(
@@ -252,7 +238,7 @@ class _BettingWidgetState extends State<BettingWidget> {
           ),
         ),
         Text(
-          '${isFirstRobotDominant ? widget.firstRobotPercentage.toStringAsFixed(0) : widget.secondRobotPercentage.toStringAsFixed(0)}%',
+          '${isFirstRobotDominant ? firstRobotPercentage.toStringAsFixed(0) : secondRobotPercentage.toStringAsFixed(0)}%',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,

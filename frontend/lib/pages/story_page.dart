@@ -1,6 +1,8 @@
 // ignore_for_file: library_private_types_in_public_api
 
 import 'package:flutter/material.dart';
+import 'package:cod_hammer/providers/language_provider.dart';
+import 'package:provider/provider.dart';
 import 'shop_page.dart'; // Import ShopPage related classes
 
 class StoryPage extends StatefulWidget {
@@ -80,79 +82,104 @@ class _StoryPageState extends State<StoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          'История покупок',
-          style: TextStyle(
-            fontFamily: 'StalinistOne',
-            color: secondaryColor,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: backgroundColor,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: secondaryColor),
-      ),
-      body: _orderHistory.isEmpty
-          ? const Center(
-              child: Text('История заказов пуста.',
-                  style: TextStyle(color: textColorSecondary)),
-            )
-          : ListView.builder(
-              itemCount: _orderHistory.length,
-              itemBuilder: (context, index) {
-                final order = _orderHistory[index];
-                return Card(
-                  color: cardColor,
-                  margin: const EdgeInsets.all(8.0),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 70,
-                          height: 70,
-                          child: order.orderItems.isNotEmpty
-                              ? AvatarWidget(
-                                  product: order.orderItems.first.product,
-                                  imageUrl:
-                                      order.orderItems.first.product.image,
-                                  width: 70,
-                                  height: 70,
-                                  glowColor: glowColor,
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text('Заказ №: ${order.orderId}',
-                                  style: const TextStyle(
-                                      color: secondaryColor,
-                                      fontWeight: FontWeight.bold)),
-                              Text('Дата: ${formatDate(order.orderDate)}',
-                                  style: const TextStyle(
-                                      color: textColorSecondary)),
-                            ],
-                          ),
-                        ),
-                        Text(formatNumber(order.totalAmount),
-                            style: const TextStyle(
-                                color: tertiaryColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16)),
-                      ],
-                    ),
-                  ),
-                );
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, _) {
+        final isEnglish = languageProvider.isEnglish;
+
+        return Scaffold(
+          backgroundColor: backgroundColor,
+          appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: secondaryColor),
+              onPressed: () {
+                Navigator.of(context).pop(); // Возврат в меню (Шипунов Д.А., 26.01.2026)
               },
             ),
+            title: Text(
+              isEnglish ? 'Purchase history' : 'История покупок',
+              style: const TextStyle(
+                fontFamily: 'StalinistOne',
+                color: secondaryColor,
+                fontSize: 18,
+              ),
+            ),
+            centerTitle: true,
+            backgroundColor: backgroundColor,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: secondaryColor),
+          ),
+          body: _orderHistory.isEmpty
+              ? Center(
+                  child: Text(
+                    isEnglish
+                        ? 'Order history is empty.'
+                        : 'История заказов пуста.',
+                    style: const TextStyle(color: textColorSecondary),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _orderHistory.length,
+                  itemBuilder: (context, index) {
+                    final order = _orderHistory[index];
+                    return Card(
+                      color: cardColor,
+                      margin: const EdgeInsets.all(8.0),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 70,
+                              height: 70,
+                              child: order.orderItems.isNotEmpty
+                                  ? AvatarWidget(
+                                      product: order.orderItems.first.product,
+                                      imageUrl: order
+                                          .orderItems.first.product.image,
+                                      width: 70,
+                                      height: 70,
+                                      glowColor: glowColor,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '${isEnglish ? 'Order' : 'Заказ'} №: ${order.orderId}',
+                                    style: const TextStyle(
+                                      color: secondaryColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${isEnglish ? 'Date' : 'Дата'}: ${formatDate(order.orderDate)}',
+                                    style: const TextStyle(
+                                      color: textColorSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              formatNumber(order.totalAmount),
+                              style: const TextStyle(
+                                color: tertiaryColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        );
+      },
     );
   }
 

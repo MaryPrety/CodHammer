@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'survey_page.dart';
+import 'package:cod_hammer/services/api_service.dart';
 
 class DetailedQuestionPage extends StatefulWidget {
-  const DetailedQuestionPage({super.key});
+  final Map<String, dynamic> survey;
+
+  const DetailedQuestionPage({super.key, required this.survey});
 
   @override
   State<DetailedQuestionPage> createState() => _DetailedQuestionPageState();
@@ -10,45 +12,26 @@ class DetailedQuestionPage extends StatefulWidget {
 
 class _DetailedQuestionPageState extends State<DetailedQuestionPage> {
   int _currentQuestionIndex = 0;
-  final List<int?> _answers = [
-    null,
-    null,
-    null
-  ]; // Store selected answer index for each question
+  List<int?> _answers = [];
+  bool _isSubmitting = false;
 
   static const Color secondaryColor = Color.fromRGBO(205, 251, 228, 1);
   static const Color tertiaryColor = Color(0xFFB19CD9);
   static const Color glowColor = Color(0xFFFAEFD9);
 
-  final List<Map<String, dynamic>> _questions = [
-    {
-      'question': 'Question 1 : Do you like the whole event of robot beating?',
-      'options': [
-        'Yes, I like to watch in action',
-        'Yes, I\'m part of it',
-        'No, I\'m not interested',
-        'I am neutral',
-      ],
-    },
-    {
-      'question':
-          'Question 2 : If you could choose a gift card for betting points, which of these options would attract ?',
-      'options': [
-        'Exclusive gadget (such as smart watch)',
-        'Gift card to your favorite store or online platform',
-        'Experience or activity (such as concert tickets)',
-      ],
-    },
-    {
-      'question':
-          'Question 3 : If you were a participant in the robot battle, what souvenir would you choose?',
-      'options': [
-        'Combat robot with lighting and sound effects',
-        'T-shirt or hoodie with unique design',
-        'Interactive kit to build a mini robot',
-      ],
-    },
-  ];
+  List<Map<String, dynamic>> get _questions {
+    final questions = widget.survey['questions'] as List<dynamic>? ?? [];
+    return questions.map((q) => {
+      'text': q['text'] ?? '',
+      'options': (q['options'] as List<dynamic>?) ?? [],
+    }).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _answers = List.filled(_questions.length, null);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,21 +72,12 @@ class _DetailedQuestionPageState extends State<DetailedQuestionPage> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(14),
-                child: Image.asset(
-                  'assets/Fight_robots.png',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Image.asset(
-                      'assets/placeholder.png',
-                      fit: BoxFit.cover,
-                    );
-                  },
-                ),
+                child: _buildSurveyImage(),
               ),
             ),
             const SizedBox(height: 20),
             Text(
-              _questions[_currentQuestionIndex]['question'],
+              _questions[_currentQuestionIndex]['text'] ?? '',
               style: const TextStyle(
                 color: Color.fromRGBO(205, 251, 228, 1),
                 fontSize: 20,
@@ -114,11 +88,11 @@ class _DetailedQuestionPageState extends State<DetailedQuestionPage> {
             Expanded(
               child: ListView.builder(
                 itemCount: (_questions[_currentQuestionIndex]['options']
-                        as List<String>)
+                        as List<dynamic>)
                     .length,
                 itemBuilder: (context, index) {
                   String option = (_questions[_currentQuestionIndex]['options']
-                      as List<String>)[index];
+                      as List<dynamic>)[index].toString();
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: InkWell(
@@ -179,21 +153,14 @@ class _DetailedQuestionPageState extends State<DetailedQuestionPage> {
             const SizedBox(height: 20),
             Center(
               child: ElevatedButton(
-                onPressed: _answers[_currentQuestionIndex] != null
-                    ? () {
+                onPressed: _answers[_currentQuestionIndex] != null && !_isSubmitting
+                    ? () async {
                         if (_currentQuestionIndex < _questions.length - 1) {
                           setState(() {
                             _currentQuestionIndex++;
                           });
                         } else {
-                          // Show Results Page or Logic here
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  SurveyResultsPage(answers: _answers),
-                            ),
-                          );
+                          await _submitSurvey();
                         }
                       }
                     : null, // Disable button if no answer selected
@@ -209,16 +176,25 @@ class _DetailedQuestionPageState extends State<DetailedQuestionPage> {
                   // ignore: deprecated_member_use
                   shadowColor: tertiaryColor.withOpacity(0.4), // Shadow color
                 ),
-                child: Text(
-                  _currentQuestionIndex < _questions.length - 1
-                      ? 'Continue'
-                      : 'Finish',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: Color(0xFF062B42),
-                  ),
-                ),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF062B42)),
+                        ),
+                      )
+                    : Text(
+                        _currentQuestionIndex < _questions.length - 1
+                            ? 'Continue'
+                            : 'Finish',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Color(0xFF062B42),
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 20),
@@ -226,5 +202,76 @@ class _DetailedQuestionPageState extends State<DetailedQuestionPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildSurveyImage() {
+    final imageUrl = widget.survey['image_url']?.toString();
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      if (imageUrl.startsWith('http')) {
+        return Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Image.asset(
+              'assets/placeholder.png',
+              fit: BoxFit.cover,
+            );
+          },
+        );
+      } else if (imageUrl.startsWith('assets/')) {
+        return Image.asset(
+          imageUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Image.asset(
+              'assets/placeholder.png',
+              fit: BoxFit.cover,
+            );
+          },
+        );
+      }
+    }
+    return Image.asset(
+      'assets/Fight_robots.png',
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Image.asset(
+          'assets/placeholder.png',
+          fit: BoxFit.cover,
+        );
+      },
+    );
+  }
+
+  Future<void> _submitSurvey() async {
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      final surveyId = widget.survey['id'] as int;
+      final answers = _answers.map((a) => a ?? 0).toList();
+
+      await ApiService.submitSurvey(
+        surveyId: surveyId,
+        answers: answers,
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Опросник успешно пройден')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка отправки ответов: $e')),
+        );
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 }

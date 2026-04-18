@@ -7,7 +7,7 @@ class InfoText extends StatefulWidget {
   const InfoText({super.key});
 
   @override
-  _InfoTextState createState() => _InfoTextState();
+  State<InfoText> createState() => _InfoTextState();
 }
 
 class _InfoTextState extends State<InfoText> {

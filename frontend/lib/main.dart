@@ -152,10 +152,32 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
-  final int _gemCount = 0;
+  int? _userPoints;
   late PageController _pageController;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final GlobalKey _shopPageKey = GlobalKey();
+  final GlobalKey _betPageKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    // Инициализируем PageController с учетом того, что меню - последняя страница
+    _pageController = PageController(initialPage: _currentIndex);
+    _loadUserPoints();
+  }
+
+  Future<void> _loadUserPoints() async {
+    try {
+      final profile = await ApiService.getProfile();
+      if (mounted) {
+        setState(() {
+          _userPoints = profile['points'] as int? ?? 0;
+        });
+      }
+    } catch (e) {
+      // Игнорируем ошибки загрузки баланса
+    }
+  }
 
   late final List<Widget> _pages = [
     const CalendarPage(),
@@ -168,12 +190,6 @@ class _MainNavigationState extends State<MainNavigation> {
   // Индекс для страницы меню (будет использоваться как индекс 5)
   static const int menuPageIndex = 5;
 
-  @override
-  void initState() {
-    super.initState();
-    // Инициализируем PageController с учетом того, что меню - последняя страница
-    _pageController = PageController(initialPage: _currentIndex);
-  }
 
   @override
   void dispose() {
@@ -187,13 +203,18 @@ class _MainNavigationState extends State<MainNavigation> {
       key: _scaffoldKey,
       appBar: CustomAppBar(
         title: 'CodHammer',
-        isProfilePage: _currentIndex == 3,
-        points: _currentIndex == 3 ? _gemCount : null,
+        isProfilePage: false, // Отображаем валюту на всех страницах
+        points: _userPoints,
         onTitleTap: null, // Убираем переход на магазин при клике на заголовок
       ),
       body: _buildBody(),
       bottomNavigationBar: _buildBottomNavBar(),
     );
+  }
+
+  // Публичный метод для обновления баланса (вызывается из других страниц)
+  void refreshUserPoints() {
+    _loadUserPoints();
   }
 
   Widget _buildBody() {
@@ -203,6 +224,25 @@ class _MainNavigationState extends State<MainNavigation> {
     return PageView(
       controller: _pageController,
       onPageChanged: (index) {
+        // Останавливаем видео на странице ставок, если переходим на другую страницу
+        const int betPageIndex = 2; // Индекс страницы ставок
+        const int shopPageIndex = 3; // Индекс страницы магазина
+        final betPageState = _betPageKey.currentState;
+        if (betPageState != null) {
+          if (_currentIndex == betPageIndex && index != betPageIndex) {
+            // Уходим со страницы ставок - останавливаем видео
+            (betPageState as dynamic).pauseVideo();
+          } else if (_currentIndex != betPageIndex && index == betPageIndex) {
+            // Возвращаемся на страницу ставок - возобновляем видео
+            (betPageState as dynamic).resumeVideo();
+          }
+        }
+        
+        // Обновляем баланс при переходе на страницу магазина
+        if (index == shopPageIndex) {
+          _loadUserPoints();
+        }
+        
         if (index == _pages.length) {
           // Если свайпнули на меню (последняя страница)
           setState(() {
@@ -361,7 +401,10 @@ class _MainNavigationState extends State<MainNavigation> {
   // Метод удален - больше не используется, так как магазин теперь в основной панели
   // @deprecated
   // ignore: unused_element
-  Future<bool> _showExitShopConfirmation_DEPRECATED(BuildContext context, {int? targetIndex}) async {
+  Future<bool> _showExitShopConfirmationDeprecated(BuildContext context, {int? targetIndex}) async {
+    // Сохраняем context до async операций
+    final navigatorContext = context;
+    
     // Проверяем, нужно ли показывать диалог
     final prefs = await SharedPreferences.getInstance();
     final skipConfirmation = prefs.getBool('skip_shop_exit_confirmation') ?? false;
@@ -398,8 +441,10 @@ class _MainNavigationState extends State<MainNavigation> {
     // Показываем диалог подтверждения
     bool dontShowAgain = false;
     
+    if (!mounted) return false;
+    
     final result = await showDialog<Map<String, dynamic>>(
-      context: context,
+      context: navigatorContext,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {

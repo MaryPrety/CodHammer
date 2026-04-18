@@ -21,7 +21,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: GestureDetector(
         onTap: onTitleTap, // Обрабатываем нажатие на заголовок
-        child: isProfilePage && (screwCount != null || points != null)
+        child: (screwCount != null || points != null)
             ? Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

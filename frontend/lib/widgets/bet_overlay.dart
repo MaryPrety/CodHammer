@@ -14,7 +14,7 @@ class BetOverlay extends StatefulWidget {
   });
 
   @override
-  _BetOverlayState createState() => _BetOverlayState();
+  State<BetOverlay> createState() => _BetOverlayState();
 }
 
 class _BetOverlayState extends State<BetOverlay> {

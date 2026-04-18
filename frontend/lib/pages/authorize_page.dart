@@ -8,7 +8,7 @@ class AuthorizePage extends StatefulWidget {
   const AuthorizePage({super.key, this.onLoginSuccess});
 
   @override
-  _AuthorizePageState createState() => _AuthorizePageState();
+  State<AuthorizePage> createState() => _AuthorizePageState();
 }
 
 class _AuthorizePageState extends State<AuthorizePage> {

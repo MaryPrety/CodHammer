@@ -98,12 +98,14 @@ class _CartPageState extends State<CartPage> {
       widget.onCartUpdated();
       
       // Переходим на страницу истории покупок
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => StoryPage(orderHistory: [order]),
-        ),
-      );
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => StoryPage(orderHistory: [order]),
+          ),
+        );
+      }
     }
   }
 

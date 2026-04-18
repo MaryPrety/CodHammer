@@ -62,9 +62,11 @@ class _CreateSurveyPageState extends State<CreateSurveyPage> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка выбора изображения: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка выбора изображения: $e')),
+        );
+      }
     }
   }
 
@@ -136,7 +138,7 @@ class _CreateSurveyPageState extends State<CreateSurveyPage> {
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Загрузить изображение на сервер и получить URL
+      // Загрузить изображение на сервер и получить URL
       // Пока используем локальный путь или null
       String? imageUrl;
       if (_selectedImage != null) {

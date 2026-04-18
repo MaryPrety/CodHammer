@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -167,7 +168,7 @@ class ApiService {
       await _makeRequest('POST', '/logout', null);
     } catch (e) {
       // Игнорируем ошибки, если сервер недоступен
-      print('Warning: Failed to logout on server: $e');
+      debugPrint('Warning: Failed to logout on server: $e');
     } finally {
       // Всегда удаляем токен локально
       final prefs = await SharedPreferences.getInstance();
@@ -370,5 +371,13 @@ class ApiService {
     } catch (e) {
       return null;
     }
+  }
+
+  // Пополнение баланса пользователя
+  static Future<Map<String, dynamic>> addPoints(int points) async {
+    final response = await _makeRequest('POST', '/add-points', {
+      'points': points,
+    });
+    return response;
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'add_balance_page.dart';
 
 class MenuPage extends StatelessWidget {
   final VoidCallback onLogout;
@@ -53,6 +54,34 @@ class MenuPage extends StatelessWidget {
                 title: 'История покупок',
                 onTap: () => onNavigateToPage(1), // История покупок
               ),
+              _buildMenuItem(
+                context,
+                icon: Icons.account_balance_wallet,
+                title: 'Кошелёк',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddBalancePage(),
+                    ),
+                  ).then((_) {
+                    // Обновляем баланс в header после возврата из страницы пополнения
+                    // Используем WidgetsBinding для обновления через короткое время
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      // Находим MainNavigation через context и обновляем баланс
+                      final mainNavigation = context.findAncestorStateOfType<State<StatefulWidget>>();
+                      if (mainNavigation != null) {
+                        // Вызываем метод обновления через dynamic
+                        try {
+                          (mainNavigation as dynamic).refreshUserPoints();
+                        } catch (e) {
+                          // Если метод не найден, игнорируем
+                        }
+                      }
+                    });
+                  });
+                },
+              ),
               const SizedBox(height: 30),
               // Разделитель
               const Divider(
@@ -102,7 +131,7 @@ class MenuPage extends StatelessWidget {
                 icon: Icons.settings,
                 title: 'Настройки',
                 onTap: () {
-                  // TODO: Переход на страницу настроек
+                  // Переход на страницу настроек (в разработке)
                 },
               ),
               _buildMenuItem(

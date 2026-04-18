@@ -14,18 +14,101 @@ class BetPage extends StatefulWidget {
   State<BetPage> createState() => _BetPageState();
 }
 
-class _BetPageState extends State<BetPage> with AutomaticKeepAliveClientMixin {
+class _BetPageState extends State<BetPage> with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   VideoPlayerController? _videoController;
   bool _isFullScreen = false;
   bool _isInitialized = false;
+  bool _wasPlayingBeforePause = false; // Запоминаем состояние воспроизведения перед паузой
 
   @override
-  bool get wantKeepAlive => true; // Сохраняем состояние страницы при свайпе
+  bool get wantKeepAlive => false; // Не сохраняем состояние, чтобы видео останавливалось
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeVideo();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Проверяем видимость страницы через Route
+    _checkPageVisibility();
+  }
+
+  void _checkPageVisibility() {
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      if (route.isCurrent) {
+        // Страница видима - возобновляем видео, если оно было запущено
+        _resumeVideoIfNeeded();
+      } else {
+        // Страница не видима - останавливаем видео
+        _pauseVideoIfPlaying();
+      }
+    }
+  }
+
+  // Публичные методы для управления видео извне
+  void pauseVideo() {
+    _pauseVideoIfPlaying();
+  }
+
+  void resumeVideo() {
+    _resumeVideoIfNeeded();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (_videoController != null && _isInitialized) {
+      if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+        // Останавливаем видео, когда приложение уходит в фон
+        if (_videoController!.value.isPlaying) {
+          _wasPlayingBeforePause = true;
+          _videoController!.pause();
+        }
+      } else if (state == AppLifecycleState.resumed) {
+        // Возобновляем видео, если оно было запущено
+        final route = ModalRoute.of(context);
+        if (route != null && route.isCurrent && _wasPlayingBeforePause) {
+          _videoController!.play();
+          _wasPlayingBeforePause = false;
+        }
+      }
+    }
+  }
+
+  void _pauseVideoIfPlaying() {
+    if (_videoController != null && _isInitialized && _videoController!.value.isPlaying) {
+      _wasPlayingBeforePause = true;
+      _videoController!.pause();
+    }
+  }
+
+  void _resumeVideoIfNeeded() {
+    if (_videoController != null && _isInitialized && !_videoController!.value.isPlaying && _wasPlayingBeforePause) {
+      _videoController!.play();
+      _wasPlayingBeforePause = false;
+    }
+  }
+
+  @override
+  void deactivate() {
+    // Останавливаем видео, когда страница становится невидимой
+    _pauseVideoIfPlaying();
+    super.deactivate();
+  }
+
+  @override
+  void activate() {
+    // Возобновляем видео, когда страница становится видимой
+    final route = ModalRoute.of(context);
+    if (route != null && route.isCurrent) {
+      _resumeVideoIfNeeded();
+    }
+    super.activate();
   }
 
   Future<void> _initializeVideo() async {
@@ -63,6 +146,7 @@ class _BetPageState extends State<BetPage> with AutomaticKeepAliveClientMixin {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _videoController?.dispose();
     super.dispose();
   }

@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:cod_hammer/providers/language_provider.dart';
 import 'package:provider/provider.dart';
 import 'cart_page.dart'; // Import CartPage
+import 'add_balance_page.dart'; // Import AddBalancePage
 
 void main() {
   runApp(const MyApp());
@@ -209,7 +210,37 @@ class _ShopPageState extends State<ShopPage> {
               '',
               style: TextStyle(color: secondaryColor),
             ), // Title is handled in main navigation
+            leading: IconButton(
+              icon: const Icon(
+                Icons.account_balance_wallet,
+                color: secondaryColor,
+              ),
+              tooltip: isEnglish ? 'Add Balance' : 'Пополнить баланс',
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddBalancePage(),
+                  ),
+                );
+                // Обновляем баланс в header после возврата из страницы пополнения
+                // Используем WidgetsBinding для обновления через короткое время
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  // Находим MainNavigation через context и обновляем баланс
+                  final mainNavigation = context.findAncestorStateOfType<State<StatefulWidget>>();
+                  if (mainNavigation != null) {
+                    // Вызываем метод обновления через dynamic
+                    try {
+                      (mainNavigation as dynamic).refreshUserPoints();
+                    } catch (e) {
+                      // Если метод не найден, игнорируем
+                    }
+                  }
+                });
+              },
+            ),
             actions: [
+              // Корзина
               Stack(
                 children: [
                   IconButton(

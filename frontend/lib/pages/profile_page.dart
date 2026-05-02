@@ -163,6 +163,23 @@ class _ProfilePageState extends State<ProfilePage> {
     return translations[label] ?? label;
   }
 
+  /// Имя в шапке: никнейм (name/username), иначе «Имя Фамилия», иначе заглушка.
+  String _headerDisplayName(Map<String, dynamic> data, bool isEnglish) {
+    String trimOrEmpty(dynamic v) => (v ?? '').toString().trim();
+
+    final fromName = trimOrEmpty(data['name']);
+    final fromUsername = trimOrEmpty(data['username']);
+    final nick = fromName.isNotEmpty ? fromName : fromUsername;
+    if (nick.isNotEmpty) return nick;
+
+    final first = trimOrEmpty(data['first_name']);
+    final last = trimOrEmpty(data['last_name']);
+    final full = [first, last].where((s) => s.isNotEmpty).join(' ');
+    if (full.isNotEmpty) return full;
+
+    return isEnglish ? 'No name' : 'Без имени';
+  }
+
   Widget _buildHeader(Map<String, dynamic> data, bool isEnglish) {
     return Row(
       children: [
@@ -178,7 +195,7 @@ class _ProfilePageState extends State<ProfilePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                data['name'] ?? (isEnglish ? 'No name' : 'Без имени'),
+                _headerDisplayName(data, isEnglish),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,

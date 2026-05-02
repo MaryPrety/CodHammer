@@ -48,7 +48,7 @@ func (h *Handler) GetUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(users)
 }
 
@@ -93,7 +93,7 @@ func (h *Handler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 		user.Course, user.Semester = utils.GetCurrentSemester(user.EnrollmentYear)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(user)
 }
 
@@ -321,7 +321,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		"message":         "Profile updated successfully",
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -366,6 +366,6 @@ func (h *Handler) AddPoints(w http.ResponseWriter, r *http.Request) {
 		"total_points": user.Points,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(response)
 }

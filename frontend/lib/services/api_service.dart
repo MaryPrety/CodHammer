@@ -49,12 +49,14 @@ class ApiService {
       }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        if (response.body.isEmpty) {
+        if (response.bodyBytes.isEmpty) {
           return {};
         }
-        return jsonDecode(response.body);
+        // Явно UTF-8: если сервер отдаёт application/json без charset, package:http читает как Latin-1 и ломает кириллицу.
+        return jsonDecode(utf8.decode(response.bodyBytes));
       } else {
-        throw Exception('Request failed: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Request failed: ${response.statusCode} - ${utf8.decode(response.bodyBytes, allowMalformed: true)}');
       }
     } catch (e) {
       throw Exception('Network error: $e');
@@ -272,9 +274,10 @@ class ApiService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return jsonDecode(response.body);
+        return jsonDecode(utf8.decode(response.bodyBytes));
       } else {
-        throw Exception('Request failed: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Request failed: ${response.statusCode} - ${utf8.decode(response.bodyBytes, allowMalformed: true)}');
       }
     } catch (e) {
       throw Exception('Network error: $e');

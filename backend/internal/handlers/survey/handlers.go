@@ -72,7 +72,7 @@ func (h *Handler) CreateSurvey(w http.ResponseWriter, r *http.Request) {
 		response["end_date"] = survey.EndDate
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 }
@@ -162,7 +162,7 @@ func (h *Handler) GetSurveys(w http.ResponseWriter, r *http.Request) {
 		surveysWithStats = append(surveysWithStats, sws)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(surveysWithStats)
 }
 
@@ -265,7 +265,7 @@ func (h *Handler) SubmitSurvey(w http.ResponseWriter, r *http.Request) {
 		"user":         user,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -404,6 +404,6 @@ func (h *Handler) GetSurveyStatistics(w http.ResponseWriter, r *http.Request) {
 		"questions":       statistics,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(response)
 }

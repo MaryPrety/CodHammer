@@ -130,7 +130,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		"message":     "User registered successfully",
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -202,7 +202,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		Token: tokenString,
 		User:  user,
 	}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -226,7 +226,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := map[string]string{"message": "Logged out successfully"}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -273,7 +273,7 @@ func (h *Handler) RequestCode(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Failed to send email: %v", err)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(map[string]string{"message": "Code sent to email"})
 }
 
@@ -378,6 +378,6 @@ func (h *Handler) VerifyCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := models.AuthResponse{Token: tokenString, User: user}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(response)
 }
